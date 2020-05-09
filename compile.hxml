@@ -1,0 +1,5 @@
+-lib pixijs
+-cp src
+-main Main
+-js bin/moshpit.js
+-dce full
