@@ -1,7 +1,7 @@
 import js.Browser;
 
 class Settings {
-    static var COLOR_BLACK:Int = 0x000000;
+    static var COLOR_BLACK:Int = 0xA7412B;
     public function new() {}
     public static function getGameViewWidth() {
         return Browser.window.innerWidth;

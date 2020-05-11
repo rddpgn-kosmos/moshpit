@@ -357,9 +357,54 @@ Settings.getGameViewHeight = function() {
 Settings.getBackgroundColor = function() {
 	return Settings.COLOR_BLACK;
 };
-var Type = function() { };
-Type.createInstance = function(cl,args) {
-	return new (Function.prototype.bind.apply(cl,[null].concat(args)));
+var configs_InputTemplate = function() { };
+var game_Animation = function(imgSource) {
+	this.playType = "normal";
+	this.animationSpeed = 1.0;
+	this.currentFrame = 0;
+	this.imaginaryFrame = 0.0;
+	this.imgSource = imgSource;
+	this.textures = [];
+	this.convertImgToTexture();
+	this.frames = this.textures.length;
+};
+game_Animation.prototype = {
+	convertImgToTexture: function() {
+		var _g = 0;
+		var _g1 = this.imgSource;
+		while(_g < _g1.length) {
+			var img = _g1[_g];
+			++_g;
+			this.textures.push(PIXI.Texture.from(img));
+		}
+	}
+	,getCurrentFrame: function() {
+		return this.textures[this.currentFrame];
+	}
+	,setCurrentFrame: function(frame) {
+		this.imaginaryFrame = frame;
+		this.currentFrame = frame;
+	}
+	,updateAnimation: function() {
+		if(this.playType == "normal") {
+			if(this.animationSpeed != 0) {
+				this.imaginaryFrame += this.animationSpeed;
+				this.currentFrame = Math.floor(this.imaginaryFrame);
+				if(this.currentFrame >= this.frames) {
+					this.currentFrame = 0;
+					this.imaginaryFrame = 0;
+				}
+			}
+		} else if(this.playType == "once") {
+			if(this.animationSpeed != 0) {
+				if(this.currentFrame < this.frames - 1) {
+					this.imaginaryFrame += this.animationSpeed;
+					this.currentFrame = Math.floor(this.imaginaryFrame);
+				}
+			}
+		}
+		return this.textures[this.currentFrame];
+	}
 };
 var game_Game = function(app) {
 	game_Game.instance = this;
@@ -392,11 +437,19 @@ game_GameLevel.prototype = {
 	initGameObjects: function() {
 	}
 };
-var game_GameObject = function(spriteUrl) {
-	PIXI.Sprite.call(this,PIXI.Texture.from(spriteUrl));
+var game_GameObject = function(model) {
+	this.objectType = "gameobject";
+	PIXI.Sprite.call(this,PIXI.Texture.from("assets/sprites/blank.png"));
+	this.animation = model.animation;
+	this.texture = this.animation.getCurrentFrame();
 	this.anchor.set(0.5);
 	this.position.set(0,0);
 	this.input = game_Game.getGame().getInputController();
+	if(!model.optimized) {
+		game_Game.getGame().getGameObjectStorage().saveGameObject(this);
+	} else {
+		game_Game.getGame().getGameObjectStorage().optimizedSaveGameObject(this);
+	}
 	this.init();
 };
 game_GameObject.__super__ = PIXI.Sprite;
@@ -404,6 +457,16 @@ game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 	init: function() {
 	}
 	,update: function(dt) {
+	}
+	,secretUpdate: function(dt) {
+		if(this.animation != null) {
+			this.texture = this.animation.updateAnimation();
+		}
+	}
+	,applyAnimation: function(animation) {
+		if(this.animation != animation) {
+			this.animation = animation;
+		}
 	}
 });
 var game_GameObjectStorage = function() {
@@ -418,22 +481,33 @@ game_GameObjectStorage.prototype = {
 			_g_head = _g_head.next;
 			var obj = val;
 			obj.update(dt);
+			obj.secretUpdate(dt);
 		}
 	}
-	,createGameObject: function(objClass) {
-		var obj = Type.createInstance(objClass,null);
+	,saveGameObject: function(obj) {
 		this.storage.push(obj);
 		this.app.stage.addChild(obj);
-		return obj;
+	}
+	,optimizedSaveGameObject: function(obj) {
+		console.log("src/game/GameObjectStorage.hx:31:",obj.objectType);
 	}
 };
 var game_InputController = function() {
 	this.listeners = new haxe_ds_StringMap();
+	this.mouseListener = new game_MouseListener();
 	this.mousePosition = new utils_Vector();
+	window.document.body.addEventListener("mousemove",$bind(this,this.setMousePosition));
 };
 game_InputController.prototype = {
-	addInputCallback: function(event,key,callback) {
-		var mapKey = event + key;
+	setMousePosition: function(event) {
+		this.mousePosition.x = event.pageX;
+		this.mousePosition.y = event.pageY;
+	}
+	,getMousePosition: function() {
+		return new utils_Vector(this.mousePosition.x,this.mousePosition.y);
+	}
+	,addInputCallback: function(event,key,callback) {
+		var mapKey = event + (key == null ? "null" : "" + key);
 		var _this = this.listeners;
 		if(__map_reserved[mapKey] != null ? _this.existsReserved(mapKey) : _this.h.hasOwnProperty(mapKey)) {
 			var _this1 = this.listeners;
@@ -449,6 +523,9 @@ game_InputController.prototype = {
 			}
 		}
 	}
+	,addMouseCallback: function(callback) {
+		this.mouseListener.addCallback(callback);
+	}
 	,onKeyDown: function(key,callback) {
 		this.addInputCallback("keydown",key,callback);
 	}
@@ -457,7 +534,12 @@ game_InputController.prototype = {
 	}
 	,onKeyPressed: function(key,callbackDown,callbackUp) {
 		this.onKeyDown(key,callbackDown);
-		this.onKeyUp(key,callbackUp);
+		if(callbackUp != null) {
+			this.onKeyUp(key,callbackUp);
+		}
+	}
+	,onMouseClick: function(callback) {
+		this.addMouseCallback(callback);
 	}
 };
 var game_InputListener = function(event,keyMapping) {
@@ -493,7 +575,57 @@ game_InputListener.prototype = {
 		}
 	}
 	,compareEvent: function(e,key) {
-		return e.key == key;
+		return e.keyCode == key;
+	}
+};
+var game_MouseListener = function() {
+	var _gthis = this;
+	this.callbacks = [];
+	window.document.body.addEventListener("click",function(e) {
+		_gthis.handleEvent(e);
+		return;
+	});
+};
+game_MouseListener.prototype = {
+	handleEvent: function(e) {
+		this.executeCallbacks();
+	}
+	,addCallback: function(callback) {
+		this.callbacks.push(callback);
+	}
+	,executeCallbacks: function() {
+		var _g = 0;
+		var _g1 = this.callbacks;
+		while(_g < _g1.length) {
+			var callback = _g1[_g];
+			++_g;
+			callback();
+		}
+	}
+};
+var haxe_Timer = function(time_ms) {
+	var me = this;
+	this.id = setInterval(function() {
+		me.run();
+	},time_ms);
+};
+haxe_Timer.delay = function(f,time_ms) {
+	var t = new haxe_Timer(time_ms);
+	t.run = function() {
+		t.stop();
+		f();
+	};
+	return t;
+};
+haxe_Timer.prototype = {
+	stop: function() {
+		if(this.id == null) {
+			return;
+		}
+		clearInterval(this.id);
+		this.id = null;
+	}
+	,run: function() {
 	}
 };
 var haxe_ds_List = function() {
@@ -554,10 +686,32 @@ levels_MainLevel.__super__ = game_GameLevel;
 levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	initGameObjects: function() {
 		var storage = game_Game.getGame().getGameObjectStorage();
-		storage.createGameObject(objects_Bunny);
+		new objects_player_Player();
 	}
 });
-var objects_Bunny = function() {
+var objects_bullet_Bullet = function() {
+	this.model = new objects_bullet_BulletModel();
+	this.direction = new utils_Vector();
+	this.moveSpd = 24;
+	game_GameObject.call(this,this.model);
+	this.animation.animationSpeed = 0.5;
+	this.animation.playType = "once";
+};
+objects_bullet_Bullet.__super__ = game_GameObject;
+objects_bullet_Bullet.prototype = $extend(game_GameObject.prototype,{
+	update: function(dt) {
+		this.x += this.direction.x * this.moveSpd * dt;
+		this.y += this.direction.y * this.moveSpd * dt;
+	}
+});
+var objects_bullet_BulletModel = function() {
+	this.animation = new game_Animation(["assets/sprites/bullets/bullet_0.png","assets/sprites/bullets/bullet_1.png"]);
+	this.optimized = false;
+};
+var objects_player_Player = function() {
+	this.model = new objects_player_PlayerModel();
+	this.isRolling = false;
+	this.rollMultiplier = 2.5;
 	this.moveSpeed = 8;
 	this.MOVE_RIGHT = 0;
 	this.MOVE_DOWN = 0;
@@ -566,48 +720,168 @@ var objects_Bunny = function() {
 	this.direction = new utils_Vector(1.0,0.0);
 	this.idealMovement = new utils_Vector();
 	this.realMovement = new utils_Vector();
-	game_GameObject.call(this,"assets/bunny.png");
+	game_GameObject.call(this,this.model);
+	this.view = new objects_player_PlayerView(this);
 	this.position.set(500,500);
+	this.weapon = new objects_weapon_Weapon(this);
 };
-objects_Bunny.__super__ = game_GameObject;
-objects_Bunny.prototype = $extend(game_GameObject.prototype,{
+objects_player_Player.__super__ = game_GameObject;
+objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 	init: function() {
 		var _gthis = this;
-		this.input.onKeyPressed("w",function() {
+		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_UP,function() {
 			return _gthis.MOVE_UP = -1;
 		},function() {
 			return _gthis.MOVE_UP = 0;
 		});
-		this.input.onKeyPressed("a",function() {
+		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_LEFT,function() {
 			return _gthis.MOVE_LEFT = -1;
 		},function() {
 			return _gthis.MOVE_LEFT = 0;
 		});
-		this.input.onKeyPressed("s",function() {
+		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_DOWN,function() {
 			return _gthis.MOVE_DOWN = 1;
 		},function() {
 			return _gthis.MOVE_DOWN = 0;
 		});
-		this.input.onKeyPressed("d",function() {
+		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_RIGHT,function() {
 			return _gthis.MOVE_RIGHT = 1;
 		},function() {
 			return _gthis.MOVE_RIGHT = 0;
 		});
+		this.input.onKeyDown(configs_InputTemplate.KEY_ROLL,$bind(this,this.roll));
 	}
 	,update: function(dt) {
-		this.idealMovement.y = this.MOVE_UP + this.MOVE_DOWN;
-		this.idealMovement.x = this.MOVE_LEFT + this.MOVE_RIGHT;
-		utils_Vector.normalize(this.idealMovement);
-		if(this.idealMovement.getLength() != 0) {
-			this.direction.x = this.idealMovement.x;
-			this.direction.y = this.idealMovement.y;
+		if(!this.isRolling) {
+			this.idealMovement.y = this.MOVE_UP + this.MOVE_DOWN;
+			this.idealMovement.x = this.MOVE_LEFT + this.MOVE_RIGHT;
+			utils_Vector.normalize(this.idealMovement);
+			if(this.idealMovement.getLength() != 0) {
+				this.direction.x = this.idealMovement.x;
+				this.direction.y = this.idealMovement.y;
+			}
+			this.idealMovement.setLength(this.moveSpeed);
+			utils_Vector.lerp(this.realMovement,this.idealMovement,1.25);
+			this.y += this.realMovement.y * dt;
+			this.x += this.realMovement.x * dt;
+		} else {
+			this.y += this.direction.y * this.moveSpeed * this.rollMultiplier * dt;
+			this.x += this.direction.x * this.moveSpeed * this.rollMultiplier * dt;
 		}
-		this.idealMovement.setLength(this.moveSpeed);
-		utils_Vector.lerp(this.realMovement,this.idealMovement,1.25);
-		this.y += this.realMovement.y;
-		this.x += this.realMovement.x;
+		this.view.update();
+	}
+	,roll: function() {
+		var _gthis = this;
+		if(!this.isRolling) {
+			this.isRolling = true;
+			new utils_Alarm(200,function() {
+				return _gthis.isRolling = false;
+			});
+		}
+	}
+	,getMovementSpeed: function() {
+		return this.realMovement.getLength();
 	}
 });
+var objects_player_PlayerModel = function() {
+	this.animation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
+	this.optimized = false;
+};
+var objects_player_PlayerView = function(player) {
+	this.animSpeed = 0.4;
+	this.playerRollAnimation = new game_Animation(["assets/sprites/player/player_roll.png"]);
+	this.playerRunAnimation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
+	this.player = player;
+	player.animation = this.playerRunAnimation;
+	player.animation.animationSpeed = this.animSpeed;
+};
+objects_player_PlayerView.prototype = {
+	update: function() {
+		if(!this.player.isRolling) {
+			if(this.player.x > this.player.input.getMousePosition().x) {
+				this.player.scale.x = -1;
+			} else {
+				this.player.scale.x = 1;
+			}
+			this.player.rotation = 0;
+			this.player.applyAnimation(this.playerRunAnimation);
+			if(this.player.getMovementSpeed() > 0.1) {
+				this.player.animation.animationSpeed = this.animSpeed;
+			} else {
+				this.player.animation.animationSpeed = 0;
+				this.player.animation.setCurrentFrame(0);
+			}
+		} else {
+			this.player.applyAnimation(this.playerRollAnimation);
+			this.player.rotation += 0.5;
+		}
+	}
+};
+var objects_weapon_Weapon = function(player) {
+	this.model = new objects_weapon_WeaponModel();
+	game_GameObject.call(this,this.model);
+	this.player = player;
+	this.view = new objects_weapon_WeaponView(this);
+	this.input.onMouseClick($bind(this,this.shoot));
+};
+objects_weapon_Weapon.__super__ = game_GameObject;
+objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
+	update: function(dt) {
+		this.x = this.player.x;
+		this.y = this.player.y;
+		this.view.update();
+	}
+	,shoot: function() {
+		var bullet = new objects_bullet_Bullet();
+		bullet.x = this.x;
+		bullet.y = this.y;
+		var mouse = this.input.getMousePosition();
+		var direction = new utils_Vector(this.x,this.y);
+		var dir = utils_Vector.calcDifference(direction,mouse);
+		bullet.direction = utils_Vector.normalize(dir);
+		bullet.rotation = this.rotation;
+		this.view.shoot();
+	}
+});
+var objects_weapon_WeaponModel = function() {
+	this.animation = new game_Animation(["assets/sprites/weapons/pistol.png"]);
+	this.optimized = false;
+};
+var objects_weapon_WeaponView = function(weapon) {
+	this.NORMAL_ANCHOR_Y = 0.5;
+	this.NORMAL_ANCHOR_X = -0.5;
+	this.anchorDelta = 0.0;
+	this.weapon = weapon;
+	weapon.anchor.set(this.NORMAL_ANCHOR_X,this.NORMAL_ANCHOR_Y);
+};
+objects_weapon_WeaponView.prototype = {
+	update: function() {
+		var mouse = this.weapon.input.getMousePosition();
+		var direction = new utils_Vector(this.weapon.x,this.weapon.y);
+		var dir = utils_Vector.calcDifference(direction,mouse);
+		dir = utils_Vector.normalize(dir);
+		this.weapon.rotation = Math.atan2(dir.y,dir.x);
+		if(this.weapon.x > this.weapon.input.getMousePosition().x) {
+			this.weapon.scale.y = -1;
+		} else {
+			this.weapon.scale.y = 1;
+		}
+		if(this.anchorDelta != 0) {
+			this.anchorDelta /= 1.25;
+			this.weapon.anchor.set(this.NORMAL_ANCHOR_X + this.anchorDelta,this.NORMAL_ANCHOR_Y);
+		}
+	}
+	,shoot: function() {
+		this.anchorDelta = 0.5;
+	}
+};
+var utils_Alarm = function(duration,callback) {
+	var _gthis = this;
+	this.timer = haxe_Timer.delay(function() {
+		callback();
+		_gthis.timer.stop();
+	},duration);
+};
 var utils_Vector = function(x,y) {
 	if(y == null) {
 		y = 0;
@@ -679,6 +953,11 @@ Perf.TOP_RIGHT = "TR";
 Perf.BOTTOM_LEFT = "BL";
 Perf.BOTTOM_RIGHT = "BR";
 Perf.DELAY_TIME = 4000;
-Settings.COLOR_BLACK = 16777215;
+Settings.COLOR_BLACK = 10961195;
+configs_InputTemplate.KEY_MOVE_UP = 87;
+configs_InputTemplate.KEY_MOVE_DOWN = 83;
+configs_InputTemplate.KEY_MOVE_LEFT = 65;
+configs_InputTemplate.KEY_MOVE_RIGHT = 68;
+configs_InputTemplate.KEY_ROLL = 32;
 Main.main();
 })(typeof exports != "undefined" ? exports : typeof window != "undefined" ? window : typeof self != "undefined" ? self : this, typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

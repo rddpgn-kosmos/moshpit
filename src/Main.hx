@@ -5,3 +5,7 @@ class Main {
         new AppController();
     }
 }
+
+//Пулинг
+//Камера
+//Враги

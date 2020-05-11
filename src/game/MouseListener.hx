@@ -7,30 +7,21 @@ import js.Browser;
 //Переписать на кейкоды
 //Хранить кейкоды в отдельном jsone
 
-class InputListener {
+class MouseListener {
 
     private var event:String;
-    private var keyMapping:Int;
     private var callbacks:Array<Function>;
     private var canUpdate:Bool = false; 
 
-    public function new(event:String, keyMapping:Int) {
-        this.event = event;
-        this.keyMapping = keyMapping;
+    public function new() {
         callbacks = new Array<Function>();
 
-        Browser.document.body.addEventListener(event, (e) -> handleEvent(e));
+        Browser.document.body.addEventListener('click', (e) -> handleEvent(e));
     }
     
     //TODO Выяснить, какого типа параметр e. 
     private function handleEvent(e:Dynamic):Void {
-        if (keyMapping != null) {
-            if (compareEvent(e, keyMapping)) {
-                executeCallbacks();
-            }
-        } else {
-            executeCallbacks();
-        }        
+        executeCallbacks();
     }
 
     public function addCallback(callback:Function) {
@@ -41,9 +32,5 @@ class InputListener {
         for(callback in callbacks) {
             callback();
         }
-    }
-    //TODO Выяснить, какого типа параметр e
-    private function compareEvent(e:Dynamic, key:Int):Bool {
-        return e.keyCode == key;
     }
 }
