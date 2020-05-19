@@ -3,19 +3,17 @@ package objects.bullet;
 import utils.Vector;
 import game.Animation;
 import game.GameObject;
+import utils.Alarm;
+import animations.BulletAnimationController;
 
 class Bullet extends GameObject {
-    private var moveSpd:Float = 24;
+    private var moveSpd:Float = 32 + Math.random()*16;
 
     public var direction:Vector = new Vector();
 
-    private var model:BulletModel = new BulletModel();
-
     public function new() {
-        super(model);
-
-        animation.animationSpeed = 0.5;
-        animation.playType = 'once';
+        super(new BulletAnimationControler(this));
+        new Alarm(300, instanceDestroy);
     }
 
     override public function update(dt:Float) {

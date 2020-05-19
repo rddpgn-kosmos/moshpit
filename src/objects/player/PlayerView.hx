@@ -1,26 +1,12 @@
 package objects.player;
 
-import game.Animation;
-
 class PlayerView {
-    private var playerRunAnimation:Animation = new Animation([
-        "assets/sprites/player/player_run_0.png",
-        "assets/sprites/player/player_run_1.png",
-        "assets/sprites/player/player_run_2.png",
-        "assets/sprites/player/player_run_3.png",
-    ]);
-    private var playerRollAnimation:Animation = new Animation([
-        "assets/sprites/player/player_roll.png",
-    ]);
-
     private var animSpeed:Float = 0.4;
     private var player:Player;
 
     public function new(player:Player) {
         this.player = player;
-
-        player.animation = playerRunAnimation;
-        player.animation.animationSpeed = animSpeed;
+        //player.animation.animationSpeed = animSpeed;
     }
 
     public function update() {
@@ -33,16 +19,14 @@ class PlayerView {
             }
 
             player.rotation = 0;
-            player.applyAnimation(playerRunAnimation);
 
             if (player.getMovementSpeed() > 0.1) {
-                player.animation.animationSpeed = animSpeed;
+                player.animationController.setState('run');
             } else {
-                player.animation.animationSpeed = 0;
-                player.animation.setCurrentFrame(0);
+                player.animationController.setState('stay');
             }
         } else {
-            player.applyAnimation(playerRollAnimation);
+            player.animationController.setState('roll');
             player.rotation += 0.5;
         }
     }

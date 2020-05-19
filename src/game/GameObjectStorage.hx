@@ -8,7 +8,6 @@ class GameObjectStorage {
 
     private var app:AppController;
     private var storage:List<GameObject>;
-    private var pools:Array<Array<GameObject>>;
 
     public function new() {
         app = Game.getGame().getApp();
@@ -27,7 +26,7 @@ class GameObjectStorage {
         app.stage.addChild(obj);
     }
 
-    public function optimizedSaveGameObject(obj:GameObject) {
-        trace(obj.objectType);
+    public function destroyGameObject(obj:GameObject) {
+        storage.remove(obj);
     }
 }

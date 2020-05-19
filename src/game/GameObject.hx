@@ -1,6 +1,5 @@
 package game;
 
-import objects.IGameObjectModel;
 import js.html.Storage;
 import game.Game;
 import game.InputController;
@@ -11,28 +10,23 @@ import pixi.core.sprites.Sprite;
 @:allow(game.InputController)
 class GameObject extends Sprite {
 
-    public var animation:Animation;
+    @:allow(game.AnimationController)
+    private var animation:Animation;
+
+    public var animationController:AnimationController;
     public var input:InputController;
     public var objectType:String = 'gameobject';
 
-    private var optimized:Bool = false;
-
     //Динамическое создание анимаций? 
-    public function new(model:IGameObjectModel) {
-        super(Texture.from('assets/sprites/blank.png'));
-        
-        this.animation = model.animation;
-        texture = animation.getCurrentFrame();
+    public function new(animationController:AnimationController) {
+        this.animationController = animationController;
+        super(animation.getCurrentFrame());
 
         anchor.set(0.5);
         position.set(0, 0);
         input = Game.getGame().getInputController();
 
-        if (!model.optimized) {
-            Game.getGame().getGameObjectStorage().saveGameObject(this);
-        } else {
-            Game.getGame().getGameObjectStorage().optimizedSaveGameObject(this);
-        }
+        Game.getGame().getGameObjectStorage().saveGameObject(this);
 
         init();
     }
@@ -47,9 +41,8 @@ class GameObject extends Sprite {
         }
     }
 
-    public function applyAnimation(animation:Animation) {
-        if (this.animation != animation) {
-            this.animation = animation;
-        }
+    public function instanceDestroy() {
+        Game.getGame().getGameObjectStorage().destroyGameObject(this);
+        this.destroy();
     }
 }

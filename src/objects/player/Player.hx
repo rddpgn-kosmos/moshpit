@@ -6,7 +6,7 @@ import configs.InputTemplate;
 import game.GameObject;
 import utils.Vector;
 import utils.Alarm;
-import objects.player.PlayerModel;
+import animations.PlayerAnimationController;
 
 class Player extends GameObject {
 
@@ -26,10 +26,9 @@ class Player extends GameObject {
     private var weapon:Weapon;
 
     public var isRolling:Bool = false;
-    private var model:PlayerModel = new PlayerModel();
 
     public function new() {
-        super(model);
+        super(new PlayerAnimationController(this));
         view = new PlayerView(this);
         position.set(500,500);
 
@@ -37,10 +36,15 @@ class Player extends GameObject {
     }
 
     public override function init() {
-       input.onKeyPressed(InputTemplate.KEY_MOVE_UP,()->MOVE_UP = -1, ()->MOVE_UP = 0);
-       input.onKeyPressed(InputTemplate.KEY_MOVE_LEFT,()->MOVE_LEFT = -1, ()->MOVE_LEFT = 0);
-       input.onKeyPressed(InputTemplate.KEY_MOVE_DOWN,()->MOVE_DOWN = 1, ()->MOVE_DOWN = 0);
-       input.onKeyPressed(InputTemplate.KEY_MOVE_RIGHT,()->MOVE_RIGHT = 1, ()->MOVE_RIGHT = 0);
+       input.onKeyDown(InputTemplate.KEY_MOVE_UP,   ()->MOVE_UP    = -1);
+       input.onKeyDown(InputTemplate.KEY_MOVE_LEFT, ()->MOVE_LEFT  = -1);
+       input.onKeyDown(InputTemplate.KEY_MOVE_DOWN, ()->MOVE_DOWN  = 1);
+       input.onKeyDown(InputTemplate.KEY_MOVE_RIGHT,()->MOVE_RIGHT = 1);
+
+       input.onKeyUp(InputTemplate.KEY_MOVE_UP,   ()->MOVE_UP    = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_LEFT, ()->MOVE_LEFT  = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_DOWN, ()->MOVE_DOWN  = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_RIGHT,()->MOVE_RIGHT = 0);
        
        input.onKeyDown(InputTemplate.KEY_ROLL, roll);
     }

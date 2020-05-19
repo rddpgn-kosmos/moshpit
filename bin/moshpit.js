@@ -22,6 +22,7 @@ var pixi_plugins_app_Application = function() {
 	this.height = window.innerHeight;
 	this.position = "static";
 };
+pixi_plugins_app_Application.__name__ = true;
 pixi_plugins_app_Application.prototype = {
 	start: function(rendererType,parentDom,canvasElement) {
 		if(rendererType == null) {
@@ -92,6 +93,7 @@ var AppController = function() {
 	var game1 = new game_Game(this);
 	this.onUpdate = $bind(game1,game1.update);
 };
+AppController.__name__ = true;
 AppController.__super__ = pixi_plugins_app_Application;
 AppController.prototype = $extend(pixi_plugins_app_Application.prototype,{
 	applySettings: function() {
@@ -104,9 +106,11 @@ AppController.prototype = $extend(pixi_plugins_app_Application.prototype,{
 	}
 });
 var Main = function() { };
+Main.__name__ = true;
 Main.main = function() {
 	new AppController();
 };
+Math.__name__ = true;
 var Perf = $hx_exports["Perf"] = function(pos,offset) {
 	if(offset == null) {
 		offset = 0;
@@ -161,6 +165,7 @@ var Perf = $hx_exports["Perf"] = function(pos,offset) {
 		this._raf = this.RAF.apply(window,[$bind(this,this._tick)]);
 	}
 };
+Perf.__name__ = true;
 Perf.prototype = {
 	_init: function() {
 		this.currentFps = 60;
@@ -339,6 +344,7 @@ Perf.prototype = {
 	}
 };
 var Reflect = function() { };
+Reflect.__name__ = true;
 Reflect.field = function(o,field) {
 	try {
 		return o[field];
@@ -348,6 +354,7 @@ Reflect.field = function(o,field) {
 	}
 };
 var Settings = function() { };
+Settings.__name__ = true;
 Settings.getGameViewWidth = function() {
 	return window.innerWidth;
 };
@@ -357,7 +364,52 @@ Settings.getGameViewHeight = function() {
 Settings.getBackgroundColor = function() {
 	return Settings.COLOR_BLACK;
 };
-var configs_InputTemplate = function() { };
+var Std = function() { };
+Std.__name__ = true;
+Std.string = function(s) {
+	return js_Boot.__string_rec(s,"");
+};
+var game_AnimationController = function(object) {
+	this.object = object;
+	this.states = [];
+};
+game_AnimationController.__name__ = true;
+game_AnimationController.prototype = {
+	setInitialState: function(state) {
+		this.state = state;
+		this.applyAnimation(state);
+	}
+	,setState: function(state) {
+		if(this.state.name != state) {
+			var _g = 0;
+			var _g1 = this.states;
+			while(_g < _g1.length) {
+				var anim = _g1[_g];
+				++_g;
+				if(anim.name == state) {
+					this.applyAnimation(anim);
+					this.state = anim;
+				}
+			}
+		}
+	}
+	,applyAnimation: function(animation) {
+		this.object.animation = animation.animation;
+		this.object.animation.animationSpeed = animation.speed;
+		this.object.animation.playType = animation.playType;
+	}
+};
+var animations_BulletAnimationControler = function(bullet) {
+	this.bulletAnimation = new game_Animation(["assets/sprites/bullets/bullet_0.png","assets/sprites/bullets/bullet_1.png"]);
+	game_AnimationController.call(this,bullet);
+	this.bulletAnimationState = new game_AnimationState("init",1,this.bulletAnimation,"once");
+	this.states.push(this.bulletAnimationState);
+	this.setInitialState(this.bulletAnimationState);
+};
+animations_BulletAnimationControler.__name__ = true;
+animations_BulletAnimationControler.__super__ = game_AnimationController;
+animations_BulletAnimationControler.prototype = $extend(game_AnimationController.prototype,{
+});
 var game_Animation = function(imgSource) {
 	this.playType = "normal";
 	this.animationSpeed = 1.0;
@@ -368,6 +420,7 @@ var game_Animation = function(imgSource) {
 	this.convertImgToTexture();
 	this.frames = this.textures.length;
 };
+game_Animation.__name__ = true;
 game_Animation.prototype = {
 	convertImgToTexture: function() {
 		var _g = 0;
@@ -380,10 +433,6 @@ game_Animation.prototype = {
 	}
 	,getCurrentFrame: function() {
 		return this.textures[this.currentFrame];
-	}
-	,setCurrentFrame: function(frame) {
-		this.imaginaryFrame = frame;
-		this.currentFrame = frame;
 	}
 	,updateAnimation: function() {
 		if(this.playType == "normal") {
@@ -406,6 +455,112 @@ game_Animation.prototype = {
 		return this.textures[this.currentFrame];
 	}
 };
+var animations_PlayerAnimationController = function(player) {
+	game_AnimationController.call(this,player);
+	this.playerRun = new game_AnimationState("run",0.4,animations_PlayerAnimationController.playerRunAnimation);
+	this.playerRoll = new game_AnimationState("roll",0.4,animations_PlayerAnimationController.playerRollAnimation);
+	this.playerStay = new game_AnimationState("stay",0.0,animations_PlayerAnimationController.playerRunAnimation);
+	this.states.push(this.playerRun);
+	this.states.push(this.playerRoll);
+	this.states.push(this.playerStay);
+	this.setInitialState(this.playerStay);
+};
+animations_PlayerAnimationController.__name__ = true;
+animations_PlayerAnimationController.__super__ = game_AnimationController;
+animations_PlayerAnimationController.prototype = $extend(game_AnimationController.prototype,{
+});
+var animations_WeaponAnimationController = function(weapon) {
+	this.weaponAnimation = new game_Animation(["assets/sprites/weapons/pistol.png"]);
+	game_AnimationController.call(this,weapon);
+	this.weaponInitState = new game_AnimationState("init",0.0,this.weaponAnimation);
+	this.states.push(this.weaponInitState);
+	this.setInitialState(this.weaponInitState);
+};
+animations_WeaponAnimationController.__name__ = true;
+animations_WeaponAnimationController.__super__ = game_AnimationController;
+animations_WeaponAnimationController.prototype = $extend(game_AnimationController.prototype,{
+});
+var configs_InputTemplate = function() { };
+configs_InputTemplate.__name__ = true;
+var game_AnimationState = function(name,speed,animation,playType) {
+	if(playType == null) {
+		playType = "normal";
+	}
+	this.name = name;
+	this.speed = speed;
+	this.animation = animation;
+	this.playType = playType;
+};
+game_AnimationState.__name__ = true;
+var game_EventExecutor = function(event,eventValue) {
+	this.isPressing = false;
+	var _gthis = this;
+	this.event = event;
+	this.eventValue = eventValue;
+	this.compare = this.getCompareFunction(event);
+	this.callbacks = [];
+	if(event.indexOf("pressed") > -1) {
+		var ev = event.split("pressed")[0];
+		window.document.body.addEventListener(ev + "down",function(e) {
+			_gthis.handlePressing(e,true);
+			return;
+		});
+		window.document.body.addEventListener(ev + "up",function(e1) {
+			_gthis.handlePressing(e1,false);
+			return;
+		});
+	} else {
+		window.document.body.addEventListener(event,function(e2) {
+			_gthis.handleEvent(e2);
+			return;
+		});
+	}
+};
+game_EventExecutor.__name__ = true;
+game_EventExecutor.prototype = {
+	update: function() {
+		if(this.isPressing) {
+			this.executeCallbacks();
+		}
+	}
+	,handleEvent: function(e) {
+		if(this.compare(e,this.eventValue)) {
+			this.executeCallbacks();
+		}
+	}
+	,handlePressing: function(e,val) {
+		if(this.compare(e,this.eventValue)) {
+			this.isPressing = val;
+		}
+	}
+	,addCallback: function(callback) {
+		this.callbacks.push(callback);
+	}
+	,executeCallbacks: function() {
+		var _g = 0;
+		var _g1 = this.callbacks;
+		while(_g < _g1.length) {
+			var callback = _g1[_g];
+			++_g;
+			callback();
+		}
+	}
+	,getCompareFunction: function(event) {
+		var compare;
+		var keycodeCompare = function(e,eventValue) {
+			return e.keyCode == eventValue;
+		};
+		var mouseClickCompare = function(e1,eventValue1) {
+			return true;
+		};
+		if(event.indexOf("key") > -1) {
+			compare = keycodeCompare;
+		} else if(event.indexOf("mouse") > -1) {
+			compare = mouseClickCompare;
+		}
+		return compare;
+	}
+};
 var game_Game = function(app) {
 	game_Game.instance = this;
 	this.app = app;
@@ -413,12 +568,14 @@ var game_Game = function(app) {
 	this.objStorage = new game_GameObjectStorage();
 	this.currenLevel = new levels_MainLevel();
 };
+game_Game.__name__ = true;
 game_Game.getGame = function() {
 	return game_Game.instance;
 };
 game_Game.prototype = {
 	update: function(dt) {
 		this.objStorage.updateGameObjects(dt);
+		this.inputController.update();
 	}
 	,getApp: function() {
 		return this.app;
@@ -433,25 +590,21 @@ game_Game.prototype = {
 var game_GameLevel = function() {
 	this.initGameObjects();
 };
+game_GameLevel.__name__ = true;
 game_GameLevel.prototype = {
 	initGameObjects: function() {
 	}
 };
-var game_GameObject = function(model) {
-	this.objectType = "gameobject";
-	PIXI.Sprite.call(this,PIXI.Texture.from("assets/sprites/blank.png"));
-	this.animation = model.animation;
-	this.texture = this.animation.getCurrentFrame();
+var game_GameObject = function(animationController) {
+	this.animationController = animationController;
+	PIXI.Sprite.call(this,this.animation.getCurrentFrame());
 	this.anchor.set(0.5);
 	this.position.set(0,0);
 	this.input = game_Game.getGame().getInputController();
-	if(!model.optimized) {
-		game_Game.getGame().getGameObjectStorage().saveGameObject(this);
-	} else {
-		game_Game.getGame().getGameObjectStorage().optimizedSaveGameObject(this);
-	}
+	game_Game.getGame().getGameObjectStorage().saveGameObject(this);
 	this.init();
 };
+game_GameObject.__name__ = true;
 game_GameObject.__super__ = PIXI.Sprite;
 game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 	init: function() {
@@ -463,16 +616,16 @@ game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 			this.texture = this.animation.updateAnimation();
 		}
 	}
-	,applyAnimation: function(animation) {
-		if(this.animation != animation) {
-			this.animation = animation;
-		}
+	,instanceDestroy: function() {
+		game_Game.getGame().getGameObjectStorage().destroyGameObject(this);
+		this.destroy();
 	}
 });
 var game_GameObjectStorage = function() {
 	this.app = game_Game.getGame().getApp();
 	this.storage = new haxe_ds_List();
 };
+game_GameObjectStorage.__name__ = true;
 game_GameObjectStorage.prototype = {
 	updateGameObjects: function(dt) {
 		var _g_head = this.storage.h;
@@ -488,119 +641,57 @@ game_GameObjectStorage.prototype = {
 		this.storage.push(obj);
 		this.app.stage.addChild(obj);
 	}
-	,optimizedSaveGameObject: function(obj) {
-		console.log("src/game/GameObjectStorage.hx:31:",obj.objectType);
+	,destroyGameObject: function(obj) {
+		this.storage.remove(obj);
 	}
 };
 var game_InputController = function() {
-	this.listeners = new haxe_ds_StringMap();
-	this.mouseListener = new game_MouseListener();
+	this.executors = new haxe_ds_StringMap();
 	this.mousePosition = new utils_Vector();
 	window.document.body.addEventListener("mousemove",$bind(this,this.setMousePosition));
 };
+game_InputController.__name__ = true;
 game_InputController.prototype = {
-	setMousePosition: function(event) {
+	update: function() {
+		var _this = this.executors;
+		var executor = new haxe_ds__$StringMap_StringMapIterator(_this,_this.arrayKeys());
+		while(executor.hasNext()) {
+			var executor1 = executor.next();
+			executor1.update();
+		}
+	}
+	,setMousePosition: function(event) {
 		this.mousePosition.x = event.pageX;
 		this.mousePosition.y = event.pageY;
 	}
 	,getMousePosition: function() {
 		return new utils_Vector(this.mousePosition.x,this.mousePosition.y);
 	}
-	,addInputCallback: function(event,key,callback) {
-		var mapKey = event + (key == null ? "null" : "" + key);
-		var _this = this.listeners;
+	,addEventCallback: function(event,eventValue,callback) {
+		var mapKey = event + Std.string(eventValue);
+		var _this = this.executors;
 		if(__map_reserved[mapKey] != null ? _this.existsReserved(mapKey) : _this.h.hasOwnProperty(mapKey)) {
-			var _this1 = this.listeners;
+			var _this1 = this.executors;
 			(__map_reserved[mapKey] != null ? _this1.getReserved(mapKey) : _this1.h[mapKey]).addCallback(callback);
 		} else {
-			var listener = new game_InputListener(event,key);
-			listener.addCallback(callback);
-			var _this2 = this.listeners;
+			var executor = new game_EventExecutor(event,eventValue);
+			executor.addCallback(callback);
+			var _this2 = this.executors;
 			if(__map_reserved[mapKey] != null) {
-				_this2.setReserved(mapKey,listener);
+				_this2.setReserved(mapKey,executor);
 			} else {
-				_this2.h[mapKey] = listener;
+				_this2.h[mapKey] = executor;
 			}
 		}
-	}
-	,addMouseCallback: function(callback) {
-		this.mouseListener.addCallback(callback);
 	}
 	,onKeyDown: function(key,callback) {
-		this.addInputCallback("keydown",key,callback);
+		this.addEventCallback("keydown",key,callback);
 	}
 	,onKeyUp: function(key,callback) {
-		this.addInputCallback("keyup",key,callback);
+		this.addEventCallback("keyup",key,callback);
 	}
-	,onKeyPressed: function(key,callbackDown,callbackUp) {
-		this.onKeyDown(key,callbackDown);
-		if(callbackUp != null) {
-			this.onKeyUp(key,callbackUp);
-		}
-	}
-	,onMouseClick: function(callback) {
-		this.addMouseCallback(callback);
-	}
-};
-var game_InputListener = function(event,keyMapping) {
-	var _gthis = this;
-	this.event = event;
-	this.keyMapping = keyMapping;
-	this.callbacks = [];
-	window.document.body.addEventListener(event,function(e) {
-		_gthis.handleEvent(e);
-		return;
-	});
-};
-game_InputListener.prototype = {
-	handleEvent: function(e) {
-		if(this.keyMapping != null) {
-			if(this.compareEvent(e,this.keyMapping)) {
-				this.executeCallbacks();
-			}
-		} else {
-			this.executeCallbacks();
-		}
-	}
-	,addCallback: function(callback) {
-		this.callbacks.push(callback);
-	}
-	,executeCallbacks: function() {
-		var _g = 0;
-		var _g1 = this.callbacks;
-		while(_g < _g1.length) {
-			var callback = _g1[_g];
-			++_g;
-			callback();
-		}
-	}
-	,compareEvent: function(e,key) {
-		return e.keyCode == key;
-	}
-};
-var game_MouseListener = function() {
-	var _gthis = this;
-	this.callbacks = [];
-	window.document.body.addEventListener("click",function(e) {
-		_gthis.handleEvent(e);
-		return;
-	});
-};
-game_MouseListener.prototype = {
-	handleEvent: function(e) {
-		this.executeCallbacks();
-	}
-	,addCallback: function(callback) {
-		this.callbacks.push(callback);
-	}
-	,executeCallbacks: function() {
-		var _g = 0;
-		var _g1 = this.callbacks;
-		while(_g < _g1.length) {
-			var callback = _g1[_g];
-			++_g;
-			callback();
-		}
+	,onMousePressed: function(callback) {
+		this.addEventCallback("mousepressed",null,callback);
 	}
 };
 var haxe_Timer = function(time_ms) {
@@ -609,6 +700,7 @@ var haxe_Timer = function(time_ms) {
 		me.run();
 	},time_ms);
 };
+haxe_Timer.__name__ = true;
 haxe_Timer.delay = function(f,time_ms) {
 	var t = new haxe_Timer(time_ms);
 	t.run = function() {
@@ -631,6 +723,7 @@ haxe_Timer.prototype = {
 var haxe_ds_List = function() {
 	this.length = 0;
 };
+haxe_ds_List.__name__ = true;
 haxe_ds_List.prototype = {
 	push: function(item) {
 		var x = new haxe_ds__$List_ListNode(item,this.h);
@@ -640,14 +733,58 @@ haxe_ds_List.prototype = {
 		}
 		this.length++;
 	}
+	,remove: function(v) {
+		var prev = null;
+		var l = this.h;
+		while(l != null) {
+			if(l.item == v) {
+				if(prev == null) {
+					this.h = l.next;
+				} else {
+					prev.next = l.next;
+				}
+				if(this.q == l) {
+					this.q = prev;
+				}
+				this.length--;
+				return true;
+			}
+			prev = l;
+			l = l.next;
+		}
+		return false;
+	}
 };
 var haxe_ds__$List_ListNode = function(item,next) {
 	this.item = item;
 	this.next = next;
 };
+haxe_ds__$List_ListNode.__name__ = true;
+var haxe_ds__$StringMap_StringMapIterator = function(map,keys) {
+	this.map = map;
+	this.keys = keys;
+	this.index = 0;
+	this.count = keys.length;
+};
+haxe_ds__$StringMap_StringMapIterator.__name__ = true;
+haxe_ds__$StringMap_StringMapIterator.prototype = {
+	hasNext: function() {
+		return this.index < this.count;
+	}
+	,next: function() {
+		var _this = this.map;
+		var key = this.keys[this.index++];
+		if(__map_reserved[key] != null) {
+			return _this.getReserved(key);
+		} else {
+			return _this.h[key];
+		}
+	}
+};
 var haxe_ds_StringMap = function() {
 	this.h = { };
 };
+haxe_ds_StringMap.__name__ = true;
 haxe_ds_StringMap.prototype = {
 	setReserved: function(key,value) {
 		if(this.rh == null) {
@@ -668,6 +805,22 @@ haxe_ds_StringMap.prototype = {
 		}
 		return this.rh.hasOwnProperty("$" + key);
 	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
 };
 var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
@@ -676,12 +829,101 @@ var js__$Boot_HaxeError = function(val) {
 		Error.captureStackTrace(this,js__$Boot_HaxeError);
 	}
 };
+js__$Boot_HaxeError.__name__ = true;
 js__$Boot_HaxeError.__super__ = Error;
 js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 });
+var js_Boot = function() { };
+js_Boot.__name__ = true;
+js_Boot.__string_rec = function(o,s) {
+	if(o == null) {
+		return "null";
+	}
+	if(s.length >= 5) {
+		return "<...>";
+	}
+	var t = typeof(o);
+	if(t == "function" && (o.__name__ || o.__ename__)) {
+		t = "object";
+	}
+	switch(t) {
+	case "function":
+		return "<function>";
+	case "object":
+		if(o.__enum__) {
+			var e = $hxEnums[o.__enum__];
+			var n = e.__constructs__[o._hx_index];
+			var con = e[n];
+			if(con.__params__) {
+				s += "\t";
+				var tmp = n + "(";
+				var _g = [];
+				var _g1 = 0;
+				var _g2 = con.__params__;
+				while(_g1 < _g2.length) {
+					var p = _g2[_g1];
+					++_g1;
+					_g.push(js_Boot.__string_rec(o[p],s));
+				}
+				return tmp + _g.join(",") + ")";
+			} else {
+				return n;
+			}
+		}
+		if(((o) instanceof Array)) {
+			var str = "[";
+			s += "\t";
+			var _g3 = 0;
+			var _g11 = o.length;
+			while(_g3 < _g11) {
+				var i = _g3++;
+				str += (i > 0 ? "," : "") + js_Boot.__string_rec(o[i],s);
+			}
+			str += "]";
+			return str;
+		}
+		var tostr;
+		try {
+			tostr = o.toString;
+		} catch( e1 ) {
+			var e2 = ((e1) instanceof js__$Boot_HaxeError) ? e1.val : e1;
+			return "???";
+		}
+		if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
+			var s2 = o.toString();
+			if(s2 != "[object Object]") {
+				return s2;
+			}
+		}
+		var str1 = "{\n";
+		s += "\t";
+		var hasp = o.hasOwnProperty != null;
+		var k = null;
+		for( k in o ) {
+		if(hasp && !o.hasOwnProperty(k)) {
+			continue;
+		}
+		if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
+			continue;
+		}
+		if(str1.length != 2) {
+			str1 += ", \n";
+		}
+		str1 += s + k + " : " + js_Boot.__string_rec(o[k],s);
+		}
+		s = s.substring(1);
+		str1 += "\n" + s + "}";
+		return str1;
+	case "string":
+		return o;
+	default:
+		return String(o);
+	}
+};
 var levels_MainLevel = function() {
 	game_GameLevel.call(this);
 };
+levels_MainLevel.__name__ = true;
 levels_MainLevel.__super__ = game_GameLevel;
 levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	initGameObjects: function() {
@@ -690,13 +932,12 @@ levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	}
 });
 var objects_bullet_Bullet = function() {
-	this.model = new objects_bullet_BulletModel();
 	this.direction = new utils_Vector();
-	this.moveSpd = 24;
-	game_GameObject.call(this,this.model);
-	this.animation.animationSpeed = 0.5;
-	this.animation.playType = "once";
+	this.moveSpd = 32 + Math.random() * 16;
+	game_GameObject.call(this,new animations_BulletAnimationControler(this));
+	new utils_Alarm(300,$bind(this,this.instanceDestroy));
 };
+objects_bullet_Bullet.__name__ = true;
 objects_bullet_Bullet.__super__ = game_GameObject;
 objects_bullet_Bullet.prototype = $extend(game_GameObject.prototype,{
 	update: function(dt) {
@@ -704,12 +945,7 @@ objects_bullet_Bullet.prototype = $extend(game_GameObject.prototype,{
 		this.y += this.direction.y * this.moveSpd * dt;
 	}
 });
-var objects_bullet_BulletModel = function() {
-	this.animation = new game_Animation(["assets/sprites/bullets/bullet_0.png","assets/sprites/bullets/bullet_1.png"]);
-	this.optimized = false;
-};
 var objects_player_Player = function() {
-	this.model = new objects_player_PlayerModel();
 	this.isRolling = false;
 	this.rollMultiplier = 2.5;
 	this.moveSpeed = 8;
@@ -720,33 +956,38 @@ var objects_player_Player = function() {
 	this.direction = new utils_Vector(1.0,0.0);
 	this.idealMovement = new utils_Vector();
 	this.realMovement = new utils_Vector();
-	game_GameObject.call(this,this.model);
+	game_GameObject.call(this,new animations_PlayerAnimationController(this));
 	this.view = new objects_player_PlayerView(this);
 	this.position.set(500,500);
 	this.weapon = new objects_weapon_Weapon(this);
 };
+objects_player_Player.__name__ = true;
 objects_player_Player.__super__ = game_GameObject;
 objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 	init: function() {
 		var _gthis = this;
-		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_UP,function() {
+		this.input.onKeyDown(configs_InputTemplate.KEY_MOVE_UP,function() {
 			return _gthis.MOVE_UP = -1;
-		},function() {
+		});
+		this.input.onKeyDown(configs_InputTemplate.KEY_MOVE_LEFT,function() {
+			return _gthis.MOVE_LEFT = -1;
+		});
+		this.input.onKeyDown(configs_InputTemplate.KEY_MOVE_DOWN,function() {
+			return _gthis.MOVE_DOWN = 1;
+		});
+		this.input.onKeyDown(configs_InputTemplate.KEY_MOVE_RIGHT,function() {
+			return _gthis.MOVE_RIGHT = 1;
+		});
+		this.input.onKeyUp(configs_InputTemplate.KEY_MOVE_UP,function() {
 			return _gthis.MOVE_UP = 0;
 		});
-		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_LEFT,function() {
-			return _gthis.MOVE_LEFT = -1;
-		},function() {
+		this.input.onKeyUp(configs_InputTemplate.KEY_MOVE_LEFT,function() {
 			return _gthis.MOVE_LEFT = 0;
 		});
-		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_DOWN,function() {
-			return _gthis.MOVE_DOWN = 1;
-		},function() {
+		this.input.onKeyUp(configs_InputTemplate.KEY_MOVE_DOWN,function() {
 			return _gthis.MOVE_DOWN = 0;
 		});
-		this.input.onKeyPressed(configs_InputTemplate.KEY_MOVE_RIGHT,function() {
-			return _gthis.MOVE_RIGHT = 1;
-		},function() {
+		this.input.onKeyUp(configs_InputTemplate.KEY_MOVE_RIGHT,function() {
 			return _gthis.MOVE_RIGHT = 0;
 		});
 		this.input.onKeyDown(configs_InputTemplate.KEY_ROLL,$bind(this,this.roll));
@@ -783,18 +1024,10 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 		return this.realMovement.getLength();
 	}
 });
-var objects_player_PlayerModel = function() {
-	this.animation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
-	this.optimized = false;
-};
 var objects_player_PlayerView = function(player) {
-	this.animSpeed = 0.4;
-	this.playerRollAnimation = new game_Animation(["assets/sprites/player/player_roll.png"]);
-	this.playerRunAnimation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
 	this.player = player;
-	player.animation = this.playerRunAnimation;
-	player.animation.animationSpeed = this.animSpeed;
 };
+objects_player_PlayerView.__name__ = true;
 objects_player_PlayerView.prototype = {
 	update: function() {
 		if(!this.player.isRolling) {
@@ -804,26 +1037,25 @@ objects_player_PlayerView.prototype = {
 				this.player.scale.x = 1;
 			}
 			this.player.rotation = 0;
-			this.player.applyAnimation(this.playerRunAnimation);
 			if(this.player.getMovementSpeed() > 0.1) {
-				this.player.animation.animationSpeed = this.animSpeed;
+				this.player.animationController.setState("run");
 			} else {
-				this.player.animation.animationSpeed = 0;
-				this.player.animation.setCurrentFrame(0);
+				this.player.animationController.setState("stay");
 			}
 		} else {
-			this.player.applyAnimation(this.playerRollAnimation);
+			this.player.animationController.setState("roll");
 			this.player.rotation += 0.5;
 		}
 	}
 };
 var objects_weapon_Weapon = function(player) {
-	this.model = new objects_weapon_WeaponModel();
-	game_GameObject.call(this,this.model);
+	this.canShoot = true;
+	game_GameObject.call(this,new animations_WeaponAnimationController(this));
 	this.player = player;
 	this.view = new objects_weapon_WeaponView(this);
-	this.input.onMouseClick($bind(this,this.shoot));
+	this.input.onMousePressed($bind(this,this.shoot));
 };
+objects_weapon_Weapon.__name__ = true;
 objects_weapon_Weapon.__super__ = game_GameObject;
 objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
 	update: function(dt) {
@@ -832,21 +1064,26 @@ objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
 		this.view.update();
 	}
 	,shoot: function() {
-		var bullet = new objects_bullet_Bullet();
-		bullet.x = this.x;
-		bullet.y = this.y;
-		var mouse = this.input.getMousePosition();
-		var direction = new utils_Vector(this.x,this.y);
-		var dir = utils_Vector.calcDifference(direction,mouse);
-		bullet.direction = utils_Vector.normalize(dir);
-		bullet.rotation = this.rotation;
-		this.view.shoot();
+		var _gthis = this;
+		if(this.canShoot) {
+			var bullet = new objects_bullet_Bullet();
+			bullet.x = this.x;
+			bullet.y = this.y;
+			var mouse = this.input.getMousePosition();
+			var direction = new utils_Vector(this.x,this.y);
+			var dir = utils_Vector.calcDifference(direction,mouse);
+			bullet.direction = utils_Vector.normalize(dir);
+			bullet.direction.x += (Math.random() - 0.5) / 10;
+			bullet.direction.y += (Math.random() - 0.5) / 10;
+			bullet.rotation = Math.atan2(bullet.direction.y,bullet.direction.x);
+			new utils_Alarm(50,function() {
+				return _gthis.canShoot = true;
+			});
+			this.canShoot = false;
+			this.view.shoot();
+		}
 	}
 });
-var objects_weapon_WeaponModel = function() {
-	this.animation = new game_Animation(["assets/sprites/weapons/pistol.png"]);
-	this.optimized = false;
-};
 var objects_weapon_WeaponView = function(weapon) {
 	this.NORMAL_ANCHOR_Y = 0.5;
 	this.NORMAL_ANCHOR_X = -0.5;
@@ -854,6 +1091,7 @@ var objects_weapon_WeaponView = function(weapon) {
 	this.weapon = weapon;
 	weapon.anchor.set(this.NORMAL_ANCHOR_X,this.NORMAL_ANCHOR_Y);
 };
+objects_weapon_WeaponView.__name__ = true;
 objects_weapon_WeaponView.prototype = {
 	update: function() {
 		var mouse = this.weapon.input.getMousePosition();
@@ -882,6 +1120,7 @@ var utils_Alarm = function(duration,callback) {
 		_gthis.timer.stop();
 	},duration);
 };
+utils_Alarm.__name__ = true;
 var utils_Vector = function(x,y) {
 	if(y == null) {
 		y = 0;
@@ -892,6 +1131,7 @@ var utils_Vector = function(x,y) {
 	this.x = x;
 	this.y = y;
 };
+utils_Vector.__name__ = true;
 utils_Vector.normalize = function(vector) {
 	var length = utils_Vector.calcLength(vector.x,vector.y);
 	if(length != 0) {
@@ -932,10 +1172,14 @@ utils_Vector.prototype = {
 var $_;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 if(typeof $global.$haxeUID == "undefined") $global.$haxeUID = 0;
+String.__name__ = true;
+Array.__name__ = true;
+Date.__name__ = "Date";
 var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
 }});
+js_Boot.__toStr = ({ }).toString;
 Perf.MEASUREMENT_INTERVAL = 1000;
 Perf.FONT_FAMILY = "Helvetica,Arial";
 Perf.FPS_BG_CLR = "#00FF00";
@@ -954,6 +1198,8 @@ Perf.BOTTOM_LEFT = "BL";
 Perf.BOTTOM_RIGHT = "BR";
 Perf.DELAY_TIME = 4000;
 Settings.COLOR_BLACK = 10961195;
+animations_PlayerAnimationController.playerRunAnimation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
+animations_PlayerAnimationController.playerRollAnimation = new game_Animation(["assets/sprites/player/player_roll.png"]);
 configs_InputTemplate.KEY_MOVE_UP = 87;
 configs_InputTemplate.KEY_MOVE_DOWN = 83;
 configs_InputTemplate.KEY_MOVE_LEFT = 65;

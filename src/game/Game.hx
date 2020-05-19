@@ -25,6 +25,7 @@ class Game {
 
     public function update(dt:Float):Void {
         objStorage.updateGameObjects(dt);
+        inputController.update();
     }
 
     public function getApp():AppController {
