@@ -1,7 +1,6 @@
 package objects.bullet;
 
 import utils.Vector;
-import game.Animation;
 import game.GameObject;
 import utils.Alarm;
 import animations.BulletAnimationController;

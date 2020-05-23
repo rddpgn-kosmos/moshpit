@@ -5,6 +5,7 @@ import game.GameObjectStorage;
 import game.InputController;
 import levels.MainLevel;
 import AppController;
+import game.CollisionController;
 
 class Game {
 
@@ -14,12 +15,14 @@ class Game {
     private var currenLevel:GameLevel;
     private var inputController:InputController;
     private var objStorage:GameObjectStorage;
+    private var collisionController:CollisionController;
 
     public function new(app:AppController) {
         instance = this;
         this.app = app;
         inputController = new InputController();
         objStorage =      new GameObjectStorage();
+        collisionController = new CollisionController(objStorage);
         currenLevel =     new MainLevel();
     }
 
@@ -38,6 +41,10 @@ class Game {
 
     public function getGameObjectStorage():GameObjectStorage {
         return objStorage;
+    }
+
+    public function getCollisionController():CollisionController {
+        return collisionController;
     }
 
     public static function getGame():Game {

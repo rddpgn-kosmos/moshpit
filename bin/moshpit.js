@@ -397,8 +397,20 @@ game_AnimationController.prototype = {
 		this.object.animation = animation.animation;
 		this.object.animation.animationSpeed = animation.speed;
 		this.object.animation.playType = animation.playType;
+		this.object.animation.setCurrentFrame(0);
 	}
 };
+var animations_BoxAnimationController = function(box) {
+	this.boxAnimation = new game_Animation(["assets/sprites/enviroment/box.png"]);
+	game_AnimationController.call(this,box);
+	this.boxState = new game_AnimationState("init",0,this.boxAnimation);
+	this.states.push(this.boxState);
+	this.setInitialState(this.boxState);
+};
+animations_BoxAnimationController.__name__ = true;
+animations_BoxAnimationController.__super__ = game_AnimationController;
+animations_BoxAnimationController.prototype = $extend(game_AnimationController.prototype,{
+});
 var animations_BulletAnimationControler = function(bullet) {
 	this.bulletAnimation = new game_Animation(["assets/sprites/bullets/bullet_0.png","assets/sprites/bullets/bullet_1.png"]);
 	game_AnimationController.call(this,bullet);
@@ -433,6 +445,10 @@ game_Animation.prototype = {
 	}
 	,getCurrentFrame: function() {
 		return this.textures[this.currentFrame];
+	}
+	,setCurrentFrame: function(frame) {
+		this.imaginaryFrame = frame;
+		this.currentFrame = frame;
 	}
 	,updateAnimation: function() {
 		if(this.playType == "normal") {
@@ -492,6 +508,45 @@ var game_AnimationState = function(name,speed,animation,playType) {
 	this.playType = playType;
 };
 game_AnimationState.__name__ = true;
+var game_CollisionController = function(gameObjStorage) {
+	this.gameObjStorage = gameObjStorage;
+};
+game_CollisionController.__name__ = true;
+game_CollisionController.prototype = {
+	SimpleCollision: function(objA,objB) {
+		var objects = this.gameObjStorage.getObjectStorage();
+		var _g_head = objects.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var objX = val;
+			var _g_head1 = objects.h;
+			while(_g_head1 != null) {
+				var val1 = _g_head1.item;
+				_g_head1 = _g_head1.next;
+				var objY = val1;
+				if(objX.objectType == objA && objY.objectType == objB) {
+					if(this.CalcSimpleCollision(objX,objY)) {
+						if(objX.objectType == objB) {
+							return objY;
+						} else {
+							return objX;
+						}
+					}
+				}
+			}
+		}
+		return null;
+	}
+	,CalcSimpleCollision: function(objX,objY) {
+		if(Math.abs(objX.x - objY.x) < 32.0) {
+			if(Math.abs(objX.y - objY.y) < 32.0) {
+				return true;
+			}
+		}
+		return false;
+	}
+};
 var game_EventExecutor = function(event,eventValue) {
 	this.isPressing = false;
 	var _gthis = this;
@@ -566,6 +621,7 @@ var game_Game = function(app) {
 	this.app = app;
 	this.inputController = new game_InputController();
 	this.objStorage = new game_GameObjectStorage();
+	this.collisionController = new game_CollisionController(this.objStorage);
 	this.currenLevel = new levels_MainLevel();
 };
 game_Game.__name__ = true;
@@ -586,6 +642,9 @@ game_Game.prototype = {
 	,getGameObjectStorage: function() {
 		return this.objStorage;
 	}
+	,getCollisionController: function() {
+		return this.collisionController;
+	}
 };
 var game_GameLevel = function() {
 	this.initGameObjects();
@@ -596,7 +655,10 @@ game_GameLevel.prototype = {
 	}
 };
 var game_GameObject = function(animationController) {
+	this.objectType = "gameobject";
 	this.animationController = animationController;
+	this.collisionController = game_Game.getGame().getCollisionController();
+	console.log("src/game/GameObject.hx:27:",this.collisionController);
 	PIXI.Sprite.call(this,this.animation.getCurrentFrame());
 	this.anchor.set(0.5);
 	this.position.set(0,0);
@@ -636,6 +698,12 @@ game_GameObjectStorage.prototype = {
 			obj.update(dt);
 			obj.secretUpdate(dt);
 		}
+		this.updateLayering();
+	}
+	,updateLayering: function() {
+		this.app.stage.children.sort(function(a,b) {
+			return Math.round(a.y - b.y);
+		});
 	}
 	,saveGameObject: function(obj) {
 		this.storage.push(obj);
@@ -643,6 +711,9 @@ game_GameObjectStorage.prototype = {
 	}
 	,destroyGameObject: function(obj) {
 		this.storage.remove(obj);
+	}
+	,getObjectStorage: function() {
+		return this.storage;
 	}
 };
 var game_InputController = function() {
@@ -929,8 +1000,23 @@ levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	initGameObjects: function() {
 		var storage = game_Game.getGame().getGameObjectStorage();
 		new objects_player_Player();
+		new objects_box_BoxController();
 	}
 });
+var objects_box_Box = function() {
+	game_GameObject.call(this,new animations_BoxAnimationController(this));
+	this.objectType = "box";
+};
+objects_box_Box.__name__ = true;
+objects_box_Box.__super__ = game_GameObject;
+objects_box_Box.prototype = $extend(game_GameObject.prototype,{
+});
+var objects_box_BoxController = function() {
+	this.currentBox = new objects_box_Box();
+	this.currentBox.x = 200;
+	this.currentBox.y = 200;
+};
+objects_box_BoxController.__name__ = true;
 var objects_bullet_Bullet = function() {
 	this.direction = new utils_Vector();
 	this.moveSpd = 32 + Math.random() * 16;
@@ -959,6 +1045,7 @@ var objects_player_Player = function() {
 	game_GameObject.call(this,new animations_PlayerAnimationController(this));
 	this.view = new objects_player_PlayerView(this);
 	this.position.set(500,500);
+	this.objectType = "player";
 	this.weapon = new objects_weapon_Weapon(this);
 };
 objects_player_Player.__name__ = true;
@@ -1005,11 +1092,17 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 			utils_Vector.lerp(this.realMovement,this.idealMovement,1.25);
 			this.y += this.realMovement.y * dt;
 			this.x += this.realMovement.x * dt;
+			this.checkCollisions();
 		} else {
 			this.y += this.direction.y * this.moveSpeed * this.rollMultiplier * dt;
 			this.x += this.direction.x * this.moveSpeed * this.rollMultiplier * dt;
 		}
 		this.view.update();
+	}
+	,checkCollisions: function() {
+		if(this.collisionController.SimpleCollision("player","box") != null) {
+			console.log("src/objects/player/Player.hx:82:","yay");
+		}
 	}
 	,roll: function() {
 		var _gthis = this;

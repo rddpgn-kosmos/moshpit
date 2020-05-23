@@ -31,5 +31,6 @@ class AnimationController {
         object.animation = animation.animation;
         object.animation.animationSpeed = animation.speed;
         object.animation.playType = animation.playType;
+        object.animation.setCurrentFrame(0);
     }
 }

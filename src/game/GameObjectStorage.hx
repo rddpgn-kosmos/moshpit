@@ -3,7 +3,9 @@ package game;
 import game.Game;
 import game.GameObject;
 import pixi.core.Application;
+import game.CollisionController;
 
+@:allow(game.CollisionController)
 class GameObjectStorage {
 
     private var app:AppController;
@@ -19,6 +21,12 @@ class GameObjectStorage {
             obj.update(dt);
             obj.secretUpdate(dt);
         }
+
+        updateLayering();
+    }
+
+    private function updateLayering() {
+        app.stage.children.sort(function(a, b) return Math.round(a.y - b.y));
     }
 
     public function saveGameObject(obj:GameObject) {
@@ -28,5 +36,9 @@ class GameObjectStorage {
 
     public function destroyGameObject(obj:GameObject) {
         storage.remove(obj);
+    }
+
+    private function getObjectStorage() {
+        return storage;
     }
 }

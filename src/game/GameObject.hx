@@ -8,18 +8,23 @@ import pixi.core.textures.Texture;
 import pixi.core.sprites.Sprite;
 
 @:allow(game.InputController)
+@:allow(game.GameObjectStorage)
 class GameObject extends Sprite {
-
     @:allow(game.AnimationController)
     private var animation:Animation;
 
+    private var collisionController:CollisionController;
+
     public var animationController:AnimationController;
+
     public var input:InputController;
     public var objectType:String = 'gameobject';
 
     //Динамическое создание анимаций? 
     public function new(animationController:AnimationController) {
         this.animationController = animationController;
+        collisionController = Game.getGame().getCollisionController();
+
         super(animation.getCurrentFrame());
 
         anchor.set(0.5);
@@ -35,7 +40,7 @@ class GameObject extends Sprite {
 
     public function update(dt:Float) { }
 
-    public final function secretUpdate(dt:Float) {
+    private final function secretUpdate(dt:Float) {
         if (animation != null) {
             texture = animation.updateAnimation();
         }

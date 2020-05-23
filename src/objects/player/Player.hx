@@ -31,6 +31,7 @@ class Player extends GameObject {
         super(new PlayerAnimationController(this));
         view = new PlayerView(this);
         position.set(500,500);
+        objectType = 'player';
 
         weapon = new Weapon(this);
     }
@@ -66,12 +67,20 @@ class Player extends GameObject {
             
             y += realMovement.y * dt;
             x += realMovement.x * dt;
+
+            checkCollisions();
         } else {
             y += direction.y * moveSpeed * rollMultiplier * dt;
             x += direction.x * moveSpeed * rollMultiplier * dt;
         }
 
         view.update();
+    }
+
+    private function checkCollisions():Void {
+        if (collisionController.SimpleCollision('player', 'box') != null) {
+            trace('yay');
+        }
     }
 
     private function roll() {
