@@ -11,7 +11,7 @@ class EnemyAnimationController extends game.AnimationController {
     private var enemyGotDamage:AnimationState;
 
     private static var enemyRunAnimation:Animation = new Animation([
-        "assets/sprites/enemies/skeleton_hit.png",
+        "assets/sprites/enemies/skeleton_fly.png",
     ]);
     private static var enemyAttackAnimation:Animation = new Animation([
         "assets/sprites/enemies/skeleton_hit.png",
@@ -23,7 +23,7 @@ class EnemyAnimationController extends game.AnimationController {
     public function new(enemy:GameObject) {
         super(enemy);
         
-        enemyRun = new AnimationState('run', 0.4, enemyRunAnimation);
+        enemyRun = new AnimationState('run', 0.2, enemyRunAnimation);
         enemyAttack = new AnimationState('attack', 0.4, enemyAttackAnimation);
         enemyGotDamage = new AnimationState('got_damage', 0.0, enemyGotDamageAnimation);
 

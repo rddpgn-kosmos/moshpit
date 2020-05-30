@@ -13,12 +13,14 @@ class GameObject extends Sprite {
     @:allow(game.AnimationController)
     private var animation:Animation;
     private var collisionController:CollisionController;
+    private var destroyed:Bool = false;
 
     public var input:InputController;
 
     public var animationController:AnimationController;
     public var objectType:String = 'gameobject';
     public var radius:Int = 32;
+    
 
     /*
         Вынести все общие штуки для всех геймобжектов сюда.
@@ -71,8 +73,15 @@ class GameObject extends Sprite {
         }
     }
 
-    public function instanceDestroy() {
-        Game.getGame().getGameObjectStorage().destroyGameObject(this);
-        this.destroy();
+    public function instanceDestroy():Void {
+        if (this != null) {
+            this.destroy();
+            Game.getGame().getGameObjectStorage().destroyGameObject(this);
+            destroyed = true;
+        }
+    }
+
+    public function getIsDestroyed():Bool {
+        return destroyed;
     }
 }

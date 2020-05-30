@@ -101,9 +101,9 @@ AppController.prototype = $extend(pixi_plugins_app_Application.prototype,{
 		this.position = "fixed";
 		this.width = Settings.getGameViewWidth();
 		this.height = Settings.getGameViewHeight();
-		this.backgroundColor = Settings.getBackgroundColor();
-		this.transparent = false;
+		this.transparent = true;
 		this.antialias = false;
+		this.backgroundColor = null;
 	}
 	,__class__: AppController
 });
@@ -373,9 +373,6 @@ Settings.getGameViewWidth = function() {
 Settings.getGameViewHeight = function() {
 	return window.innerHeight;
 };
-Settings.getBackgroundColor = function() {
-	return Settings.COLOR_BLACK;
-};
 var Std = function() { };
 Std.__name__ = true;
 Std.string = function(s) {
@@ -489,7 +486,7 @@ game_Animation.prototype = {
 };
 var animations_EnemyAnimationController = function(enemy) {
 	game_AnimationController.call(this,enemy);
-	this.enemyRun = new game_AnimationState("run",0.4,animations_EnemyAnimationController.enemyRunAnimation);
+	this.enemyRun = new game_AnimationState("run",0.2,animations_EnemyAnimationController.enemyRunAnimation);
 	this.enemyAttack = new game_AnimationState("attack",0.4,animations_EnemyAnimationController.enemyAttackAnimation);
 	this.enemyGotDamage = new game_AnimationState("got_damage",0.0,animations_EnemyAnimationController.enemyGotDamageAnimation);
 	this.states.push(this.enemyRun);
@@ -560,18 +557,19 @@ game_CollisionController.__name__ = true;
 game_CollisionController.prototype = {
 	SimpleCollision: function(objA,objB) {
 		if(((objA) instanceof game_GameObject) && ((objB) instanceof game_GameObject)) {
-			return this.SimpleCollisionObjectObject(objA,objB);
+			return this.simpleCollisionObjectObject(objA,objB);
 		} else if(typeof(objA) == "string" && ((objB) instanceof game_GameObject) || ((objA) instanceof game_GameObject) && typeof(objB) == "string") {
-			return this.SimpleCollisionObjectString(objA,objB);
+			return this.simpleCollisionObjectString(objA,objB);
 		} else if(typeof(objA) == "string" && typeof(objB) == "string") {
-			return this.SimpleCollisionStringString(objA,objB);
+			return this.simpleCollisionStringString(objA,objB);
 		} else {
-			console.log("src/game/CollisionController.hx:21:","Expected values needs to be string or gameobject");
-			return false;
+			console.log("src/game/CollisionController.hx:22:","Expected values needs to be string or gameobject");
+			return null;
 		}
 	}
-	,SimpleCollisionObjectString: function(objA,objB) {
+	,simpleCollisionObjectString: function(objA,objB) {
 		var objects = this.gameObjStorage.getObjectStorage();
+		var collidedObjects = [];
 		var obj;
 		var objType;
 		if(((objA) instanceof game_GameObject)) {
@@ -587,18 +585,23 @@ game_CollisionController.prototype = {
 			_g_head = _g_head.next;
 			var objX = val;
 			if(objX.objectType == objType) {
-				if(this.CalcSimpleCollision(objX,obj)) {
-					return objX;
+				if(this.calcSimpleCollision(objX,obj)) {
+					collidedObjects.push(objX);
 				}
 			}
 		}
-		return false;
+		if(collidedObjects.length > 0) {
+			return collidedObjects;
+		}
+		return null;
 	}
-	,SimpleCollisionObjectObject: function(objA,objB) {
-		return this.CalcSimpleCollision(objA,objB);
+	,simpleCollisionObjectObject: function(objA,objB) {
+		return this.calcSimpleCollision(objA,objB);
 	}
-	,SimpleCollisionStringString: function(objA,objB) {
+	,simpleCollisionStringString: function(objA,objB) {
 		var objects = this.gameObjStorage.getObjectStorage();
+		var collidedObjects = new haxe_ds_ObjectMap();
+		var collided = false;
 		var _g_head = objects.h;
 		while(_g_head != null) {
 			var val = _g_head.item;
@@ -610,21 +613,25 @@ game_CollisionController.prototype = {
 				_g_head1 = _g_head1.next;
 				var objY = val1;
 				if(objX.objectType == objA && objY.objectType == objB) {
-					if(this.CalcSimpleCollision(objX,objY)) {
-						return true;
+					if(this.calcSimpleCollision(objX,objY)) {
+						collidedObjects.set(objX,objY);
+						collided = true;
 					}
 				}
 			}
 		}
-		return false;
+		if(collided) {
+			return collidedObjects;
+		}
+		return null;
 	}
-	,CalcSimpleCollision: function(objX,objY) {
+	,calcSimpleCollision: function(objX,objY) {
 		if(Math.abs(objX.x - objY.x) < 32.0) {
 			if(Math.abs(objX.y - objY.y) < 32.0) {
 				return true;
 			}
 		}
-		return false;
+		return null;
 	}
 	,__class__: game_CollisionController
 };
@@ -740,6 +747,7 @@ game_GameLevel.prototype = {
 };
 var game_GameObject = function(animationController) {
 	this.objectType = "gameobject";
+	this.destroyed = false;
 	this.animationController = animationController;
 	this.collisionController = game_Game.getGame().getCollisionController();
 	PIXI.Sprite.call(this,this.animation.getCurrentFrame());
@@ -765,8 +773,12 @@ game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 		}
 	}
 	,instanceDestroy: function() {
-		game_Game.getGame().getGameObjectStorage().destroyGameObject(this);
 		this.destroy();
+		game_Game.getGame().getGameObjectStorage().destroyGameObject(this);
+		this.destroyed = true;
+	}
+	,getIsDestroyed: function() {
+		return this.destroyed;
 	}
 	,__class__: game_GameObject
 });
@@ -782,8 +794,10 @@ game_GameObjectStorage.prototype = {
 			var val = _g_head.item;
 			_g_head = _g_head.next;
 			var obj = val;
-			obj.update(dt);
-			obj.secretUpdate(dt);
+			if(!obj.getIsDestroyed()) {
+				obj.update(dt);
+				obj.secretUpdate(dt);
+			}
 		}
 		this.updateLayering();
 	}
@@ -929,6 +943,19 @@ var haxe_ds__$List_ListNode = function(item,next) {
 haxe_ds__$List_ListNode.__name__ = true;
 haxe_ds__$List_ListNode.prototype = {
 	__class__: haxe_ds__$List_ListNode
+};
+var haxe_ds_ObjectMap = function() {
+	this.h = { __keys__ : { }};
+};
+haxe_ds_ObjectMap.__name__ = true;
+haxe_ds_ObjectMap.__interfaces__ = [haxe_IMap];
+haxe_ds_ObjectMap.prototype = {
+	set: function(key,value) {
+		var id = key.__id__ || (key.__id__ = $global.$haxeUID++);
+		this.h[id] = value;
+		this.h.__keys__[id] = key;
+	}
+	,__class__: haxe_ds_ObjectMap
 };
 var haxe_ds__$StringMap_StringMapIterator = function(map,keys) {
 	this.map = map;
@@ -1214,106 +1241,159 @@ levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	initGameObjects: function() {
 		var storage = game_Game.getGame().getGameObjectStorage();
 		var player = new objects_player_Player();
-		new objects_box_BoxController();
+		new objects_box_Box(player);
 		new objects_enemy_EnemyFactory(player);
 	}
 	,__class__: levels_MainLevel
 });
-var objects_box_Box = function() {
+var objects_box_Box = function(player) {
 	game_GameObject.call(this,new animations_BoxAnimationController(this));
 	this.objectType = "box";
+	this.player = player;
+	this.respawn();
 };
 objects_box_Box.__name__ = true;
 objects_box_Box.__super__ = game_GameObject;
 objects_box_Box.prototype = $extend(game_GameObject.prototype,{
 	respawn: function() {
-		this.x = 800 * Math.random();
-		this.y = 800 * Math.random();
+		var offset = 64;
+		var levelWidth = 1920 - offset * 2;
+		var levelHeight = 1080 - offset * 2;
+		while(true) {
+			this.x = Math.random() * levelWidth + offset;
+			this.y = Math.random() * levelHeight + offset;
+			if(!(Math.abs(this.player.x - this.x) < 400 && Math.abs(this.player.y - this.y) < 400)) {
+				break;
+			}
+		}
 	}
 	,update: function(dt) {
 		var playerCollision = this.collisionController.SimpleCollision(this,"player");
-		if(playerCollision != false) {
-			var player = js_Boot.__cast(playerCollision , objects_player_Player);
+		if(playerCollision != null) {
+			var player = js_Boot.__cast(playerCollision[0] , objects_player_Player);
 			player.setRandomGun();
 			this.respawn();
 		}
 	}
 	,__class__: objects_box_Box
 });
-var objects_box_BoxController = function() {
-	this.currentBox = new objects_box_Box();
-	this.currentBox.x = 200;
-	this.currentBox.y = 200;
-};
-objects_box_BoxController.__name__ = true;
-objects_box_BoxController.prototype = {
-	__class__: objects_box_BoxController
-};
-var objects_bullet_Bullet = function(x,y,direction) {
-	this.lifeTime = 300;
-	this.moveSpd = 32 + Math.random() * 16;
+var objects_bullet_AbstractBullet = function(x,y,direction,lifeTime,moveSpd) {
 	game_GameObject.call(this,new animations_BulletAnimationControler(this));
 	this.x = x;
 	this.y = y;
 	this.direction = new utils_Vector(direction.x,direction.y);
 	this.rotation = Math.atan2(direction.y,direction.x);
-	new utils_Alarm(this.lifeTime,$bind(this,this.instanceDestroy));
+	this.lifeTime = lifeTime;
+	this.moveSpd = moveSpd;
+	new utils_Alarm(lifeTime,$bind(this,this.instanceDestroy));
+};
+objects_bullet_AbstractBullet.__name__ = true;
+objects_bullet_AbstractBullet.__super__ = game_GameObject;
+objects_bullet_AbstractBullet.prototype = $extend(game_GameObject.prototype,{
+	update: function(dt) {
+		this.x += this.direction.x * this.moveSpd * dt;
+		this.y += this.direction.y * this.moveSpd * dt;
+		var enemyCollision = this.collisionController.SimpleCollision(this,"enemy");
+		if(enemyCollision != null) {
+			var enemy = js_Boot.__cast(enemyCollision[0] , objects_enemy_Enemy);
+			enemy.hit();
+			this.instanceDestroy();
+		}
+	}
+	,__class__: objects_bullet_AbstractBullet
+});
+var objects_bullet_Bullet = function(x,y,direction) {
+	var moveSpd = 48 + Math.random() * 16;
+	var lifeTime = 300;
+	objects_bullet_AbstractBullet.call(this,x,y,direction,lifeTime,moveSpd);
 };
 objects_bullet_Bullet.__name__ = true;
-objects_bullet_Bullet.__super__ = game_GameObject;
-objects_bullet_Bullet.prototype = $extend(game_GameObject.prototype,{
-	update: function(dt) {
-		this.x += this.direction.x * this.moveSpd * dt;
-		this.y += this.direction.y * this.moveSpd * dt;
-	}
-	,__class__: objects_bullet_Bullet
+objects_bullet_Bullet.__super__ = objects_bullet_AbstractBullet;
+objects_bullet_Bullet.prototype = $extend(objects_bullet_AbstractBullet.prototype,{
+	__class__: objects_bullet_Bullet
 });
 var objects_bullet_Shell = function(x,y,direction) {
-	this.moveSpd = 48 + Math.random() * 16;
-	game_GameObject.call(this,new animations_BulletAnimationControler(this));
-	this.x = x;
-	this.y = y;
-	this.direction = new utils_Vector(direction.x,direction.y);
-	this.rotation = Math.atan2(direction.y,direction.x);
+	var moveSpd = 48 + Math.random() * 16;
+	var lifeTime = 300;
+	objects_bullet_AbstractBullet.call(this,x,y,direction,lifeTime,moveSpd);
 };
 objects_bullet_Shell.__name__ = true;
-objects_bullet_Shell.__super__ = game_GameObject;
-objects_bullet_Shell.prototype = $extend(game_GameObject.prototype,{
+objects_bullet_Shell.__super__ = objects_bullet_AbstractBullet;
+objects_bullet_Shell.prototype = $extend(objects_bullet_AbstractBullet.prototype,{
 	update: function(dt) {
-		this.x += this.direction.x * this.moveSpd * dt;
-		this.y += this.direction.y * this.moveSpd * dt;
-		this.moveSpd /= 1.1;
-		this.scale.x /= 1.05;
-		this.scale.y /= 1.05;
-		if(this.moveSpd < 4) {
-			this.instanceDestroy();
+		objects_bullet_AbstractBullet.prototype.update.call(this,dt);
+		if(!this.destroyed) {
+			this.moveSpd /= 1.05;
+			this.scale.x /= 1.05;
+			this.scale.y /= 1.05;
+			if(this.moveSpd < 4) {
+				this.instanceDestroy();
+			}
 		}
 	}
 	,__class__: objects_bullet_Shell
 });
-var objects_enemy_Enemy = function(x,y,player) {
+var objects_enemy_Enemy = function(x,y,player,factory) {
+	this.hp = Math.random() * 2;
+	this.canGetDamage = true;
 	this.diff = new utils_Vector();
 	this.direction = new utils_Vector();
 	game_GameObject.call(this,new animations_EnemyAnimationController(this));
+	this.objectType = "enemy";
 	this.player = player;
 	this.x = x;
 	this.y = y;
 	this.pos = new utils_Vector(x,y);
 	this.moveSpeed = Math.random() * 4 + 4;
+	this.maxSpeed = this.moveSpeed;
+	this.factory = factory;
 };
 objects_enemy_Enemy.__name__ = true;
 objects_enemy_Enemy.__super__ = game_GameObject;
 objects_enemy_Enemy.prototype = $extend(game_GameObject.prototype,{
 	update: function(dt) {
-		this.diff = utils_Vector.calcDifference(new utils_Vector(this.x,this.y),new utils_Vector(this.player.x,this.player.y));
-		utils_Vector.lerp(this.direction,this.diff,0.05);
-		this.direction = utils_Vector.normalize(this.direction);
+		if(!this.player.getIsDestroyed()) {
+			this.diff = utils_Vector.calcDifference(new utils_Vector(this.x,this.y),new utils_Vector(this.player.x,this.player.y));
+			utils_Vector.lerp(this.direction,this.diff,Math.random() / 15);
+			this.direction = utils_Vector.normalize(this.direction);
+			if(this.player.x > this.x) {
+				this.scale.x = 1;
+			} else {
+				this.scale.x = -1;
+			}
+			if(this.moveSpeed < this.maxSpeed) {
+				this.moveSpeed += 0.1;
+			}
+		} else {
+			this.moveSpeed /= 1.03;
+		}
 		this.x += this.direction.x * this.moveSpeed;
 		this.y += this.direction.y * this.moveSpeed;
+	}
+	,hit: function() {
+		var _gthis = this;
+		if(this.canGetDamage) {
+			this.animationController.setState("got_damage");
+			this.moveSpeed /= 2;
+			this.moveSpeed = -this.moveSpeed;
+			this.direction.addAngle(Math.random() * 60 - 30);
+			this.canGetDamage = false;
+			new utils_Alarm(120,function() {
+				_gthis.animationController.setState("run");
+				_gthis.canGetDamage = true;
+			});
+			this.hp -= 1;
+			if(this.hp <= 0) {
+				this.factory.removeSimpleEnemy(this);
+			}
+		}
 	}
 	,__class__: objects_enemy_Enemy
 });
 var objects_enemy_EnemyFactory = function(player) {
+	this.maxEnemies = 24;
+	this.levelHeight = 1080;
+	this.levelWidth = 1920;
 	this.totalEnemies = 0;
 	this.player = player;
 	this.createSimpleEnemy();
@@ -1321,11 +1401,24 @@ var objects_enemy_EnemyFactory = function(player) {
 objects_enemy_EnemyFactory.__name__ = true;
 objects_enemy_EnemyFactory.prototype = {
 	createSimpleEnemy: function() {
-		if(this.totalEnemies < 20) {
-			this.totalEnemies++;
-			new objects_enemy_Enemy(50,50,this.player);
-			new utils_Alarm(Math.round(Math.random() * 1000),$bind(this,this.createSimpleEnemy));
+		if(!this.player.getIsDestroyed()) {
+			if(this.totalEnemies < this.maxEnemies) {
+				this.totalEnemies++;
+				var x = Math.random() * this.levelWidth;
+				var y = Math.random() * this.levelHeight;
+				while(Math.abs(this.player.x - x) < 300 && Math.abs(this.player.y - y) < 300) {
+					x = Math.random() * this.levelWidth;
+					y = Math.random() * this.levelHeight;
+				}
+				new objects_enemy_Enemy(x,y,this.player,this);
+			}
+			this.maxEnemies += Math.round(Math.random() * 6 - 3);
+			new utils_Alarm(Math.round(Math.random() * 600),$bind(this,this.createSimpleEnemy));
 		}
+	}
+	,removeSimpleEnemy: function(enemy) {
+		this.totalEnemies--;
+		enemy.instanceDestroy();
 	}
 	,__class__: objects_enemy_EnemyFactory
 };
@@ -1345,6 +1438,7 @@ var objects_player_Player = function() {
 	this.position.set(500,500);
 	this.objectType = "player";
 	this.weapon = new objects_weapon_Weapon(this);
+	var text = new PIXI.Text("че ебана");
 };
 objects_player_Player.__name__ = true;
 objects_player_Player.__super__ = game_GameObject;
@@ -1378,6 +1472,19 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 		this.input.onKeyDown(configs_InputTemplate.KEY_ROLL,$bind(this,this.roll));
 	}
 	,update: function(dt) {
+		this.view.update();
+		var levelWidth = 1920;
+		var levelHeight = 1080;
+		if(this.x > levelWidth) {
+			this.x = levelWidth;
+		} else if(this.x < 0) {
+			this.x = 0;
+		}
+		if(this.y > levelHeight) {
+			this.y = levelHeight;
+		} else if(this.y < 0) {
+			this.y = 0;
+		}
 		if(!this.isRolling) {
 			this.idealMovement.y = this.MOVE_UP + this.MOVE_DOWN;
 			this.idealMovement.x = this.MOVE_LEFT + this.MOVE_RIGHT;
@@ -1390,11 +1497,14 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 			utils_Vector.lerp(this.realMovement,this.idealMovement,1.25);
 			this.y += this.realMovement.y * dt;
 			this.x += this.realMovement.x * dt;
+			var enemyCollision = this.collisionController.SimpleCollision(this,"enemy");
+			if(enemyCollision != null) {
+				this.instanceDestroy();
+			}
 		} else {
 			this.y += this.direction.y * this.moveSpeed * this.rollMultiplier * dt;
 			this.x += this.direction.x * this.moveSpeed * this.rollMultiplier * dt;
 		}
-		this.view.update();
 	}
 	,roll: function() {
 		var _gthis = this;
@@ -1455,9 +1565,13 @@ objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
 		this.animationController.setState(state);
 	}
 	,update: function(dt) {
-		this.x = this.player.x;
-		this.y = this.player.y;
-		this.view.update();
+		if(!this.player.getIsDestroyed()) {
+			this.x = this.player.x;
+			this.y = this.player.y;
+			this.view.update();
+		} else {
+			this.instanceDestroy();
+		}
 	}
 	,autoShoot: function() {
 		if(this.stateController.getGun().auto) {
@@ -1470,9 +1584,11 @@ objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
 		}
 	}
 	,shoot: function() {
-		var direction = this.calcDirectionToMouse();
-		this.stateController.getGun().fire(direction);
-		this.view.shoot();
+		if(!this.destroyed) {
+			var direction = this.calcDirectionToMouse();
+			this.stateController.getGun().fire(direction);
+			this.view.shoot();
+		}
 	}
 	,calcDirectionToMouse: function() {
 		var mouse = this.input.getMousePosition();
@@ -1514,6 +1630,15 @@ var objects_weapon_WeaponStates = function(weapon) {
 		_this2.setReserved(k2,v2);
 	} else {
 		_this2.h[k2] = v2;
+	}
+	var this13 = this.gunMap;
+	var k3 = objects_weapon_WeaponStates.tripleMachinegun;
+	var v3 = new objects_weapon_guns_TripleMachinegun(weapon);
+	var _this3 = this13;
+	if(__map_reserved[k3] != null) {
+		_this3.setReserved(k3,v3);
+	} else {
+		_this3.h[k3] = v3;
 	}
 };
 objects_weapon_WeaponStates.__name__ = true;
@@ -1636,7 +1761,7 @@ objects_weapon_guns_Pp.prototype = $extend(objects_weapon_guns_AbstractGun.proto
 		this.fireRate = 20;
 		this.auto = true;
 		this.range = 10;
-		this.positionOffset = 32;
+		this.positionOffset = 48;
 		this.fireCallback = function(direction) {
 			_gthis.makeRangedDirection(direction);
 			var position = _gthis.calcOffsetPosition(direction);
@@ -1656,7 +1781,7 @@ objects_weapon_guns_Shotgun.prototype = $extend(objects_weapon_guns_AbstractGun.
 		this.fireRate = 200;
 		this.auto = false;
 		this.range = 10;
-		this.positionOffset = 32;
+		this.positionOffset = 64;
 		this.fireCallback = function(direction) {
 			_gthis.makeRangedDirection(direction);
 			var position = _gthis.calcOffsetPosition(direction);
@@ -1685,6 +1810,30 @@ objects_weapon_guns_Shotgun.prototype = $extend(objects_weapon_guns_AbstractGun.
 		};
 	}
 	,__class__: objects_weapon_guns_Shotgun
+});
+var objects_weapon_guns_TripleMachinegun = function(weapon) {
+	objects_weapon_guns_AbstractGun.call(this,weapon);
+};
+objects_weapon_guns_TripleMachinegun.__name__ = true;
+objects_weapon_guns_TripleMachinegun.__super__ = objects_weapon_guns_AbstractGun;
+objects_weapon_guns_TripleMachinegun.prototype = $extend(objects_weapon_guns_AbstractGun.prototype,{
+	init: function() {
+		var _gthis = this;
+		this.fireRate = 80;
+		this.auto = true;
+		this.range = 2;
+		this.positionOffset = 64;
+		this.fireCallback = function(direction) {
+			var position = _gthis.calcOffsetPosition(direction);
+			_gthis.makeRangedDirection(direction);
+			new objects_bullet_Bullet(position.x,position.y,direction);
+			direction.addAngle(15);
+			new objects_bullet_Bullet(position.x,position.y,direction);
+			direction.addAngle(-30);
+			new objects_bullet_Bullet(position.x,position.y,direction);
+		};
+	}
+	,__class__: objects_weapon_guns_TripleMachinegun
 });
 var utils_Alarm = function(duration,callback) {
 	var _gthis = this;
@@ -1777,6 +1926,7 @@ var Float = Number;
 var Bool = Boolean;
 var Class = { };
 var Enum = { };
+haxe_ds_ObjectMap.count = 0;
 var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
@@ -1799,8 +1949,7 @@ Perf.TOP_RIGHT = "TR";
 Perf.BOTTOM_LEFT = "BL";
 Perf.BOTTOM_RIGHT = "BR";
 Perf.DELAY_TIME = 4000;
-Settings.COLOR_BLACK = 10961195;
-animations_EnemyAnimationController.enemyRunAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
+animations_EnemyAnimationController.enemyRunAnimation = new game_Animation(["assets/sprites/enemies/skeleton_fly.png"]);
 animations_EnemyAnimationController.enemyAttackAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
 animations_EnemyAnimationController.enemyGotDamageAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
 animations_PlayerAnimationController.playerRunAnimation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);

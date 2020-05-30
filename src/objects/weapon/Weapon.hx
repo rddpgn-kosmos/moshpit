@@ -32,10 +32,13 @@ class Weapon extends GameObject {
     }
 
     public override function update(dt:Float):Void {
-        x = player.x;
-        y = player.y;
-
-        view.update();
+        if (!player.getIsDestroyed()) {
+            x = player.x;
+            y = player.y;
+            view.update();
+        } else {
+            instanceDestroy();
+        }
     }
 
     private function autoShoot() {
@@ -51,9 +54,11 @@ class Weapon extends GameObject {
     }
 
     private function shoot() {
-        var direction:Vector = calcDirectionToMouse();
-        stateController.getGun().fire(direction);
-        view.shoot();
+        if (!destroyed) {
+            var direction:Vector = calcDirectionToMouse();
+            stateController.getGun().fire(direction);
+            view.shoot();
+        }
     }
 
     private function calcDirectionToMouse():Vector {

@@ -19,6 +19,7 @@ class WeaponStates {
         gunMap[pistol] = new Pistol(weapon);
         gunMap[pp] = new Pp(weapon);
         gunMap[shotgun] = new Shotgun(weapon);
+        gunMap[tripleMachinegun] = new TripleMachinegun(weapon);
     };
 
     public function setState(state:String):Void {

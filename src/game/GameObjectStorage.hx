@@ -18,8 +18,10 @@ class GameObjectStorage {
 
     public function updateGameObjects(dt:Float) {
         for(obj in storage) {
-            obj.update(dt);
-            obj.secretUpdate(dt);
+            if (!obj.getIsDestroyed()) {
+                obj.update(dt);
+                obj.secretUpdate(dt);
+            }
         }
 
         updateLayering();

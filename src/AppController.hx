@@ -16,9 +16,8 @@ class AppController extends Application {
         position =        Application.POSITION_FIXED;
         width =           Settings.getGameViewWidth();
         height =          Settings.getGameViewHeight();
-        backgroundColor = Settings.getBackgroundColor();
-        transparent = false;
+        transparent = true;
         antialias = false;
-        
+        this.backgroundColor = null;
     }
 }

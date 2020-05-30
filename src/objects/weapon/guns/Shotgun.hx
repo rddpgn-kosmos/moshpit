@@ -9,7 +9,7 @@ class Shotgun extends AbstractGun {
         fireRate = 200;
         auto = false;
         range = 10;
-        positionOffset = 32;
+        positionOffset = 64;
         fireCallback = function(direction:Vector) {
             for(i in 0...8) {
                 makeRangedDirection(direction);

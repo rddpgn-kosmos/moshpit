@@ -8,6 +8,7 @@ import game.GameObject;
 import utils.Vector;
 import utils.Alarm;
 import animations.PlayerAnimationController;
+import pixi.core.text.Text;
 
 class Player extends GameObject {
 
@@ -52,6 +53,23 @@ class Player extends GameObject {
     }
     
     public override function update(dt:Float) {
+        view.update();
+
+        var levelWidth = 1920;
+        var levelHeight = 1080;
+
+        if (x > levelWidth) {
+            x = levelWidth;
+        } else if (x < 0) {
+            x = 0;
+        }
+
+        if (y > levelHeight) {
+            y = levelHeight;
+        } else if (y < 0) {
+            y = 0;
+        }
+
         if (!isRolling) {
             idealMovement.y = MOVE_UP + MOVE_DOWN;
             idealMovement.x = MOVE_LEFT + MOVE_RIGHT;
@@ -68,12 +86,15 @@ class Player extends GameObject {
             
             y += realMovement.y * dt;
             x += realMovement.x * dt;
+
+            var enemyCollision = collisionController.SimpleCollision(this, 'enemy');
+            if (enemyCollision != null) {
+                instanceDestroy();
+            }
         } else {
             y += direction.y * moveSpeed * rollMultiplier * dt;
             x += direction.x * moveSpeed * rollMultiplier * dt;
         }
-
-        view.update();
     }
 
     private function roll() {
@@ -92,7 +113,7 @@ class Player extends GameObject {
         return realMovement.getLength();
     }
 
-    public function setRandomGun() {
+    public function setRandomGun():Void {
         weapon.setRandomGun();
     }
 }
