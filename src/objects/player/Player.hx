@@ -1,5 +1,6 @@
 package objects.player;
 
+import game.AnimationController;
 import game.Game;
 import objects.weapon.Weapon;
 import configs.InputTemplate;
@@ -42,10 +43,10 @@ class Player extends GameObject {
        input.onKeyDown(InputTemplate.KEY_MOVE_DOWN, ()->MOVE_DOWN  = 1);
        input.onKeyDown(InputTemplate.KEY_MOVE_RIGHT,()->MOVE_RIGHT = 1);
 
-       input.onKeyUp(InputTemplate.KEY_MOVE_UP,   ()->MOVE_UP    = 0);
-       input.onKeyUp(InputTemplate.KEY_MOVE_LEFT, ()->MOVE_LEFT  = 0);
-       input.onKeyUp(InputTemplate.KEY_MOVE_DOWN, ()->MOVE_DOWN  = 0);
-       input.onKeyUp(InputTemplate.KEY_MOVE_RIGHT,()->MOVE_RIGHT = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_UP,     ()->MOVE_UP    = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_LEFT,   ()->MOVE_LEFT  = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_DOWN,   ()->MOVE_DOWN  = 0);
+       input.onKeyUp(InputTemplate.KEY_MOVE_RIGHT,  ()->MOVE_RIGHT = 0);
        
        input.onKeyDown(InputTemplate.KEY_ROLL, roll);
     }
@@ -67,20 +68,12 @@ class Player extends GameObject {
             
             y += realMovement.y * dt;
             x += realMovement.x * dt;
-
-            checkCollisions();
         } else {
             y += direction.y * moveSpeed * rollMultiplier * dt;
             x += direction.x * moveSpeed * rollMultiplier * dt;
         }
 
         view.update();
-    }
-
-    private function checkCollisions():Void {
-        if (collisionController.SimpleCollision('player', 'box') != null) {
-            trace('yay');
-        }
     }
 
     private function roll() {
@@ -98,18 +91,8 @@ class Player extends GameObject {
     public function getMovementSpeed() {
         return realMovement.getLength();
     }
+
+    public function setRandomGun() {
+        weapon.setRandomGun();
+    }
 }
-
-/*
-Функция нормализации верктора
-Функция поиска длины вектора
-Если длина вектора не ноль, то ускорятся
-Иначе замедлятся
-Настоящее усорение, это вектор, который стремится к идеальному ускорению
-
-Коллбек функция выполняется в контексте класса, которому принадлежит данная функция
-Убрать темлпейт, и сделать нормальную функцию он кей даун;
-
-
-*/
-

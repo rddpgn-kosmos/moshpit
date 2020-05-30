@@ -41,7 +41,7 @@ class Vector {
         return diffVector;
     }
 
-    public static function lerp(from:Vector, to:Vector, deltaSpeed:Float = 1) {
+    public static function lerp(from:Vector, to:Vector, deltaSpeed:Float = 1):Void {
         var diffVector:Vector = Vector.calcDifference(from, to);
 
         if (Vector.calcLength(diffVector.x, diffVector.y) > deltaSpeed) {
@@ -50,5 +50,33 @@ class Vector {
 
         from.x += diffVector.x;
         from.y += diffVector.y;
+    }
+
+    public function getAngle():Float {
+        var angle:Float;
+        angle = Math.atan2(y,x)*180/Math.PI;
+        if (angle > 0) {
+            angle -= 360;
+        }
+        angle = -angle;
+        
+        return angle;
+    }
+
+    public function setAngle(angle:Float):Void {
+        angle = (90 + angle) / 180 * Math.PI;
+        x = Math.sin(angle);
+        y = Math.cos(angle);
+    }
+
+    public function addAngle(deltaAngle:Float):Void {
+        var angle:Float = getAngle() + deltaAngle;
+        setAngle(angle);
+    }
+
+    public static function clamp(vector:Vector, length:Float):Void {
+        if (vector.getLength() > length) {
+            vector.setLength(length);
+        }
     }
 }

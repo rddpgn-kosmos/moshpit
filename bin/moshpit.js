@@ -85,6 +85,7 @@ pixi_plugins_app_Application.prototype = {
 			this.onUpdate(this.app.ticker.deltaTime);
 		}
 	}
+	,__class__: pixi_plugins_app_Application
 };
 var AppController = function() {
 	pixi_plugins_app_Application.call(this);
@@ -104,7 +105,17 @@ AppController.prototype = $extend(pixi_plugins_app_Application.prototype,{
 		this.transparent = false;
 		this.antialias = false;
 	}
+	,__class__: AppController
 });
+var HxOverrides = function() { };
+HxOverrides.__name__ = true;
+HxOverrides.iter = function(a) {
+	return { cur : 0, arr : a, hasNext : function() {
+		return this.cur < this.arr.length;
+	}, next : function() {
+		return this.arr[this.cur++];
+	}};
+};
 var Main = function() { };
 Main.__name__ = true;
 Main.main = function() {
@@ -342,6 +353,7 @@ Perf.prototype = {
 		this.CAF.apply(window,[this._raf]);
 		this._raf = null;
 	}
+	,__class__: Perf
 };
 var Reflect = function() { };
 Reflect.__name__ = true;
@@ -399,6 +411,7 @@ game_AnimationController.prototype = {
 		this.object.animation.playType = animation.playType;
 		this.object.animation.setCurrentFrame(0);
 	}
+	,__class__: game_AnimationController
 };
 var animations_BoxAnimationController = function(box) {
 	this.boxAnimation = new game_Animation(["assets/sprites/enviroment/box.png"]);
@@ -410,6 +423,7 @@ var animations_BoxAnimationController = function(box) {
 animations_BoxAnimationController.__name__ = true;
 animations_BoxAnimationController.__super__ = game_AnimationController;
 animations_BoxAnimationController.prototype = $extend(game_AnimationController.prototype,{
+	__class__: animations_BoxAnimationController
 });
 var animations_BulletAnimationControler = function(bullet) {
 	this.bulletAnimation = new game_Animation(["assets/sprites/bullets/bullet_0.png","assets/sprites/bullets/bullet_1.png"]);
@@ -421,6 +435,7 @@ var animations_BulletAnimationControler = function(bullet) {
 animations_BulletAnimationControler.__name__ = true;
 animations_BulletAnimationControler.__super__ = game_AnimationController;
 animations_BulletAnimationControler.prototype = $extend(game_AnimationController.prototype,{
+	__class__: animations_BulletAnimationControler
 });
 var game_Animation = function(imgSource) {
 	this.playType = "normal";
@@ -470,7 +485,23 @@ game_Animation.prototype = {
 		}
 		return this.textures[this.currentFrame];
 	}
+	,__class__: game_Animation
 };
+var animations_EnemyAnimationController = function(enemy) {
+	game_AnimationController.call(this,enemy);
+	this.enemyRun = new game_AnimationState("run",0.4,animations_EnemyAnimationController.enemyRunAnimation);
+	this.enemyAttack = new game_AnimationState("attack",0.4,animations_EnemyAnimationController.enemyAttackAnimation);
+	this.enemyGotDamage = new game_AnimationState("got_damage",0.0,animations_EnemyAnimationController.enemyGotDamageAnimation);
+	this.states.push(this.enemyRun);
+	this.states.push(this.enemyAttack);
+	this.states.push(this.enemyGotDamage);
+	this.setInitialState(this.enemyRun);
+};
+animations_EnemyAnimationController.__name__ = true;
+animations_EnemyAnimationController.__super__ = game_AnimationController;
+animations_EnemyAnimationController.prototype = $extend(game_AnimationController.prototype,{
+	__class__: animations_EnemyAnimationController
+});
 var animations_PlayerAnimationController = function(player) {
 	game_AnimationController.call(this,player);
 	this.playerRun = new game_AnimationState("run",0.4,animations_PlayerAnimationController.playerRunAnimation);
@@ -484,17 +515,28 @@ var animations_PlayerAnimationController = function(player) {
 animations_PlayerAnimationController.__name__ = true;
 animations_PlayerAnimationController.__super__ = game_AnimationController;
 animations_PlayerAnimationController.prototype = $extend(game_AnimationController.prototype,{
+	__class__: animations_PlayerAnimationController
 });
 var animations_WeaponAnimationController = function(weapon) {
-	this.weaponAnimation = new game_Animation(["assets/sprites/weapons/pistol.png"]);
+	this.tripleMachinegunAnimation = new game_Animation(["assets/sprites/weapons/triple_machinegun.png"]);
+	this.shotgunAnimation = new game_Animation(["assets/sprites/weapons/shotgun.png"]);
+	this.ppAnimation = new game_Animation(["assets/sprites/weapons/pp.png"]);
+	this.pistolAnimation = new game_Animation(["assets/sprites/weapons/pistol.png"]);
 	game_AnimationController.call(this,weapon);
-	this.weaponInitState = new game_AnimationState("init",0.0,this.weaponAnimation);
-	this.states.push(this.weaponInitState);
-	this.setInitialState(this.weaponInitState);
+	this.pistolState = new game_AnimationState(objects_weapon_WeaponStates.pistol,0.0,this.pistolAnimation);
+	this.ppState = new game_AnimationState(objects_weapon_WeaponStates.pp,0.0,this.ppAnimation);
+	this.shotgunState = new game_AnimationState(objects_weapon_WeaponStates.shotgun,0.0,this.shotgunAnimation);
+	this.tripleMachinegunState = new game_AnimationState(objects_weapon_WeaponStates.tripleMachinegun,0.0,this.tripleMachinegunAnimation);
+	this.states.push(this.pistolState);
+	this.states.push(this.ppState);
+	this.states.push(this.shotgunState);
+	this.states.push(this.tripleMachinegunState);
+	this.setInitialState(this.pistolState);
 };
 animations_WeaponAnimationController.__name__ = true;
 animations_WeaponAnimationController.__super__ = game_AnimationController;
 animations_WeaponAnimationController.prototype = $extend(game_AnimationController.prototype,{
+	__class__: animations_WeaponAnimationController
 });
 var configs_InputTemplate = function() { };
 configs_InputTemplate.__name__ = true;
@@ -508,12 +550,54 @@ var game_AnimationState = function(name,speed,animation,playType) {
 	this.playType = playType;
 };
 game_AnimationState.__name__ = true;
+game_AnimationState.prototype = {
+	__class__: game_AnimationState
+};
 var game_CollisionController = function(gameObjStorage) {
 	this.gameObjStorage = gameObjStorage;
 };
 game_CollisionController.__name__ = true;
 game_CollisionController.prototype = {
 	SimpleCollision: function(objA,objB) {
+		if(((objA) instanceof game_GameObject) && ((objB) instanceof game_GameObject)) {
+			return this.SimpleCollisionObjectObject(objA,objB);
+		} else if(typeof(objA) == "string" && ((objB) instanceof game_GameObject) || ((objA) instanceof game_GameObject) && typeof(objB) == "string") {
+			return this.SimpleCollisionObjectString(objA,objB);
+		} else if(typeof(objA) == "string" && typeof(objB) == "string") {
+			return this.SimpleCollisionStringString(objA,objB);
+		} else {
+			console.log("src/game/CollisionController.hx:21:","Expected values needs to be string or gameobject");
+			return false;
+		}
+	}
+	,SimpleCollisionObjectString: function(objA,objB) {
+		var objects = this.gameObjStorage.getObjectStorage();
+		var obj;
+		var objType;
+		if(((objA) instanceof game_GameObject)) {
+			obj = objA;
+			objType = objB;
+		} else {
+			obj = objB;
+			objType = objA;
+		}
+		var _g_head = objects.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var objX = val;
+			if(objX.objectType == objType) {
+				if(this.CalcSimpleCollision(objX,obj)) {
+					return objX;
+				}
+			}
+		}
+		return false;
+	}
+	,SimpleCollisionObjectObject: function(objA,objB) {
+		return this.CalcSimpleCollision(objA,objB);
+	}
+	,SimpleCollisionStringString: function(objA,objB) {
 		var objects = this.gameObjStorage.getObjectStorage();
 		var _g_head = objects.h;
 		while(_g_head != null) {
@@ -527,16 +611,12 @@ game_CollisionController.prototype = {
 				var objY = val1;
 				if(objX.objectType == objA && objY.objectType == objB) {
 					if(this.CalcSimpleCollision(objX,objY)) {
-						if(objX.objectType == objB) {
-							return objY;
-						} else {
-							return objX;
-						}
+						return true;
 					}
 				}
 			}
 		}
-		return null;
+		return false;
 	}
 	,CalcSimpleCollision: function(objX,objY) {
 		if(Math.abs(objX.x - objY.x) < 32.0) {
@@ -546,6 +626,7 @@ game_CollisionController.prototype = {
 		}
 		return false;
 	}
+	,__class__: game_CollisionController
 };
 var game_EventExecutor = function(event,eventValue) {
 	this.isPressing = false;
@@ -615,6 +696,7 @@ game_EventExecutor.prototype = {
 		}
 		return compare;
 	}
+	,__class__: game_EventExecutor
 };
 var game_Game = function(app) {
 	game_Game.instance = this;
@@ -645,6 +727,7 @@ game_Game.prototype = {
 	,getCollisionController: function() {
 		return this.collisionController;
 	}
+	,__class__: game_Game
 };
 var game_GameLevel = function() {
 	this.initGameObjects();
@@ -653,23 +736,26 @@ game_GameLevel.__name__ = true;
 game_GameLevel.prototype = {
 	initGameObjects: function() {
 	}
+	,__class__: game_GameLevel
 };
 var game_GameObject = function(animationController) {
 	this.objectType = "gameobject";
 	this.animationController = animationController;
 	this.collisionController = game_Game.getGame().getCollisionController();
-	console.log("src/game/GameObject.hx:27:",this.collisionController);
 	PIXI.Sprite.call(this,this.animation.getCurrentFrame());
 	this.anchor.set(0.5);
 	this.position.set(0,0);
 	this.input = game_Game.getGame().getInputController();
 	game_Game.getGame().getGameObjectStorage().saveGameObject(this);
 	this.init();
+	this.postInit();
 };
 game_GameObject.__name__ = true;
 game_GameObject.__super__ = PIXI.Sprite;
 game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 	init: function() {
+	}
+	,postInit: function() {
 	}
 	,update: function(dt) {
 	}
@@ -682,6 +768,7 @@ game_GameObject.prototype = $extend(PIXI.Sprite.prototype,{
 		game_Game.getGame().getGameObjectStorage().destroyGameObject(this);
 		this.destroy();
 	}
+	,__class__: game_GameObject
 });
 var game_GameObjectStorage = function() {
 	this.app = game_Game.getGame().getApp();
@@ -715,6 +802,7 @@ game_GameObjectStorage.prototype = {
 	,getObjectStorage: function() {
 		return this.storage;
 	}
+	,__class__: game_GameObjectStorage
 };
 var game_InputController = function() {
 	this.executors = new haxe_ds_StringMap();
@@ -761,10 +849,16 @@ game_InputController.prototype = {
 	,onKeyUp: function(key,callback) {
 		this.addEventCallback("keyup",key,callback);
 	}
+	,onMouseDown: function(callback) {
+		this.addEventCallback("mousedown",null,callback);
+	}
 	,onMousePressed: function(callback) {
 		this.addEventCallback("mousepressed",null,callback);
 	}
+	,__class__: game_InputController
 };
+var haxe_IMap = function() { };
+haxe_IMap.__name__ = true;
 var haxe_Timer = function(time_ms) {
 	var me = this;
 	this.id = setInterval(function() {
@@ -790,6 +884,7 @@ haxe_Timer.prototype = {
 	}
 	,run: function() {
 	}
+	,__class__: haxe_Timer
 };
 var haxe_ds_List = function() {
 	this.length = 0;
@@ -825,12 +920,16 @@ haxe_ds_List.prototype = {
 		}
 		return false;
 	}
+	,__class__: haxe_ds_List
 };
 var haxe_ds__$List_ListNode = function(item,next) {
 	this.item = item;
 	this.next = next;
 };
 haxe_ds__$List_ListNode.__name__ = true;
+haxe_ds__$List_ListNode.prototype = {
+	__class__: haxe_ds__$List_ListNode
+};
 var haxe_ds__$StringMap_StringMapIterator = function(map,keys) {
 	this.map = map;
 	this.keys = keys;
@@ -851,11 +950,13 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 			return _this.h[key];
 		}
 	}
+	,__class__: haxe_ds__$StringMap_StringMapIterator
 };
 var haxe_ds_StringMap = function() {
 	this.h = { };
 };
 haxe_ds_StringMap.__name__ = true;
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
 haxe_ds_StringMap.prototype = {
 	setReserved: function(key,value) {
 		if(this.rh == null) {
@@ -876,6 +977,9 @@ haxe_ds_StringMap.prototype = {
 		}
 		return this.rh.hasOwnProperty("$" + key);
 	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
 	,arrayKeys: function() {
 		var out = [];
 		for( var key in this.h ) {
@@ -892,6 +996,7 @@ haxe_ds_StringMap.prototype = {
 		}
 		return out;
 	}
+	,__class__: haxe_ds_StringMap
 };
 var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
@@ -903,9 +1008,25 @@ var js__$Boot_HaxeError = function(val) {
 js__$Boot_HaxeError.__name__ = true;
 js__$Boot_HaxeError.__super__ = Error;
 js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
+	__class__: js__$Boot_HaxeError
 });
 var js_Boot = function() { };
 js_Boot.__name__ = true;
+js_Boot.getClass = function(o) {
+	if(((o) instanceof Array) && o.__enum__ == null) {
+		return Array;
+	} else {
+		var cl = o.__class__;
+		if(cl != null) {
+			return cl;
+		}
+		var name = js_Boot.__nativeClassName(o);
+		if(name != null) {
+			return js_Boot.__resolveNativeClass(name);
+		}
+		return null;
+	}
+};
 js_Boot.__string_rec = function(o,s) {
 	if(o == null) {
 		return "null";
@@ -991,6 +1112,99 @@ js_Boot.__string_rec = function(o,s) {
 		return String(o);
 	}
 };
+js_Boot.__interfLoop = function(cc,cl) {
+	if(cc == null) {
+		return false;
+	}
+	if(cc == cl) {
+		return true;
+	}
+	if(Object.prototype.hasOwnProperty.call(cc,"__interfaces__")) {
+		var intf = cc.__interfaces__;
+		var _g = 0;
+		var _g1 = intf.length;
+		while(_g < _g1) {
+			var i = _g++;
+			var i1 = intf[i];
+			if(i1 == cl || js_Boot.__interfLoop(i1,cl)) {
+				return true;
+			}
+		}
+	}
+	return js_Boot.__interfLoop(cc.__super__,cl);
+};
+js_Boot.__instanceof = function(o,cl) {
+	if(cl == null) {
+		return false;
+	}
+	switch(cl) {
+	case Array:
+		return ((o) instanceof Array);
+	case Bool:
+		return typeof(o) == "boolean";
+	case Dynamic:
+		return o != null;
+	case Float:
+		return typeof(o) == "number";
+	case Int:
+		if(typeof(o) == "number") {
+			return ((o | 0) === o);
+		} else {
+			return false;
+		}
+		break;
+	case String:
+		return typeof(o) == "string";
+	default:
+		if(o != null) {
+			if(typeof(cl) == "function") {
+				if(((o) instanceof cl)) {
+					return true;
+				}
+				if(js_Boot.__interfLoop(js_Boot.getClass(o),cl)) {
+					return true;
+				}
+			} else if(typeof(cl) == "object" && js_Boot.__isNativeObj(cl)) {
+				if(((o) instanceof cl)) {
+					return true;
+				}
+			}
+		} else {
+			return false;
+		}
+		if(cl == Class ? o.__name__ != null : false) {
+			return true;
+		}
+		if(cl == Enum ? o.__ename__ != null : false) {
+			return true;
+		}
+		if(o.__enum__ != null) {
+			return $hxEnums[o.__enum__] == cl;
+		} else {
+			return false;
+		}
+	}
+};
+js_Boot.__cast = function(o,t) {
+	if(o == null || js_Boot.__instanceof(o,t)) {
+		return o;
+	} else {
+		throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
+	}
+};
+js_Boot.__nativeClassName = function(o) {
+	var name = js_Boot.__toStr.call(o).slice(8,-1);
+	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") {
+		return null;
+	}
+	return name;
+};
+js_Boot.__isNativeObj = function(o) {
+	return js_Boot.__nativeClassName(o) != null;
+};
+js_Boot.__resolveNativeClass = function(name) {
+	return $global[name];
+};
 var levels_MainLevel = function() {
 	game_GameLevel.call(this);
 };
@@ -999,9 +1213,11 @@ levels_MainLevel.__super__ = game_GameLevel;
 levels_MainLevel.prototype = $extend(game_GameLevel.prototype,{
 	initGameObjects: function() {
 		var storage = game_Game.getGame().getGameObjectStorage();
-		new objects_player_Player();
+		var player = new objects_player_Player();
 		new objects_box_BoxController();
+		new objects_enemy_EnemyFactory(player);
 	}
+	,__class__: levels_MainLevel
 });
 var objects_box_Box = function() {
 	game_GameObject.call(this,new animations_BoxAnimationController(this));
@@ -1010,6 +1226,19 @@ var objects_box_Box = function() {
 objects_box_Box.__name__ = true;
 objects_box_Box.__super__ = game_GameObject;
 objects_box_Box.prototype = $extend(game_GameObject.prototype,{
+	respawn: function() {
+		this.x = 800 * Math.random();
+		this.y = 800 * Math.random();
+	}
+	,update: function(dt) {
+		var playerCollision = this.collisionController.SimpleCollision(this,"player");
+		if(playerCollision != false) {
+			var player = js_Boot.__cast(playerCollision , objects_player_Player);
+			player.setRandomGun();
+			this.respawn();
+		}
+	}
+	,__class__: objects_box_Box
 });
 var objects_box_BoxController = function() {
 	this.currentBox = new objects_box_Box();
@@ -1017,11 +1246,18 @@ var objects_box_BoxController = function() {
 	this.currentBox.y = 200;
 };
 objects_box_BoxController.__name__ = true;
-var objects_bullet_Bullet = function() {
-	this.direction = new utils_Vector();
+objects_box_BoxController.prototype = {
+	__class__: objects_box_BoxController
+};
+var objects_bullet_Bullet = function(x,y,direction) {
+	this.lifeTime = 300;
 	this.moveSpd = 32 + Math.random() * 16;
 	game_GameObject.call(this,new animations_BulletAnimationControler(this));
-	new utils_Alarm(300,$bind(this,this.instanceDestroy));
+	this.x = x;
+	this.y = y;
+	this.direction = new utils_Vector(direction.x,direction.y);
+	this.rotation = Math.atan2(direction.y,direction.x);
+	new utils_Alarm(this.lifeTime,$bind(this,this.instanceDestroy));
 };
 objects_bullet_Bullet.__name__ = true;
 objects_bullet_Bullet.__super__ = game_GameObject;
@@ -1030,7 +1266,69 @@ objects_bullet_Bullet.prototype = $extend(game_GameObject.prototype,{
 		this.x += this.direction.x * this.moveSpd * dt;
 		this.y += this.direction.y * this.moveSpd * dt;
 	}
+	,__class__: objects_bullet_Bullet
 });
+var objects_bullet_Shell = function(x,y,direction) {
+	this.moveSpd = 48 + Math.random() * 16;
+	game_GameObject.call(this,new animations_BulletAnimationControler(this));
+	this.x = x;
+	this.y = y;
+	this.direction = new utils_Vector(direction.x,direction.y);
+	this.rotation = Math.atan2(direction.y,direction.x);
+};
+objects_bullet_Shell.__name__ = true;
+objects_bullet_Shell.__super__ = game_GameObject;
+objects_bullet_Shell.prototype = $extend(game_GameObject.prototype,{
+	update: function(dt) {
+		this.x += this.direction.x * this.moveSpd * dt;
+		this.y += this.direction.y * this.moveSpd * dt;
+		this.moveSpd /= 1.1;
+		this.scale.x /= 1.05;
+		this.scale.y /= 1.05;
+		if(this.moveSpd < 4) {
+			this.instanceDestroy();
+		}
+	}
+	,__class__: objects_bullet_Shell
+});
+var objects_enemy_Enemy = function(x,y,player) {
+	this.diff = new utils_Vector();
+	this.direction = new utils_Vector();
+	game_GameObject.call(this,new animations_EnemyAnimationController(this));
+	this.player = player;
+	this.x = x;
+	this.y = y;
+	this.pos = new utils_Vector(x,y);
+	this.moveSpeed = Math.random() * 4 + 4;
+};
+objects_enemy_Enemy.__name__ = true;
+objects_enemy_Enemy.__super__ = game_GameObject;
+objects_enemy_Enemy.prototype = $extend(game_GameObject.prototype,{
+	update: function(dt) {
+		this.diff = utils_Vector.calcDifference(new utils_Vector(this.x,this.y),new utils_Vector(this.player.x,this.player.y));
+		utils_Vector.lerp(this.direction,this.diff,0.05);
+		this.direction = utils_Vector.normalize(this.direction);
+		this.x += this.direction.x * this.moveSpeed;
+		this.y += this.direction.y * this.moveSpeed;
+	}
+	,__class__: objects_enemy_Enemy
+});
+var objects_enemy_EnemyFactory = function(player) {
+	this.totalEnemies = 0;
+	this.player = player;
+	this.createSimpleEnemy();
+};
+objects_enemy_EnemyFactory.__name__ = true;
+objects_enemy_EnemyFactory.prototype = {
+	createSimpleEnemy: function() {
+		if(this.totalEnemies < 20) {
+			this.totalEnemies++;
+			new objects_enemy_Enemy(50,50,this.player);
+			new utils_Alarm(Math.round(Math.random() * 1000),$bind(this,this.createSimpleEnemy));
+		}
+	}
+	,__class__: objects_enemy_EnemyFactory
+};
 var objects_player_Player = function() {
 	this.isRolling = false;
 	this.rollMultiplier = 2.5;
@@ -1092,17 +1390,11 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 			utils_Vector.lerp(this.realMovement,this.idealMovement,1.25);
 			this.y += this.realMovement.y * dt;
 			this.x += this.realMovement.x * dt;
-			this.checkCollisions();
 		} else {
 			this.y += this.direction.y * this.moveSpeed * this.rollMultiplier * dt;
 			this.x += this.direction.x * this.moveSpeed * this.rollMultiplier * dt;
 		}
 		this.view.update();
-	}
-	,checkCollisions: function() {
-		if(this.collisionController.SimpleCollision("player","box") != null) {
-			console.log("src/objects/player/Player.hx:82:","yay");
-		}
 	}
 	,roll: function() {
 		var _gthis = this;
@@ -1116,6 +1408,10 @@ objects_player_Player.prototype = $extend(game_GameObject.prototype,{
 	,getMovementSpeed: function() {
 		return this.realMovement.getLength();
 	}
+	,setRandomGun: function() {
+		this.weapon.setRandomGun();
+	}
+	,__class__: objects_player_Player
 });
 var objects_player_PlayerView = function(player) {
 	this.player = player;
@@ -1140,43 +1436,117 @@ objects_player_PlayerView.prototype = {
 			this.player.rotation += 0.5;
 		}
 	}
+	,__class__: objects_player_PlayerView
 };
 var objects_weapon_Weapon = function(player) {
-	this.canShoot = true;
 	game_GameObject.call(this,new animations_WeaponAnimationController(this));
 	this.player = player;
 	this.view = new objects_weapon_WeaponView(this);
-	this.input.onMousePressed($bind(this,this.shoot));
+	this.stateController = new objects_weapon_WeaponStates(this);
+	this.setState(objects_weapon_WeaponStates.pistol);
+	this.input.onMouseDown($bind(this,this.manualShoot));
+	this.input.onMousePressed($bind(this,this.autoShoot));
 };
 objects_weapon_Weapon.__name__ = true;
 objects_weapon_Weapon.__super__ = game_GameObject;
 objects_weapon_Weapon.prototype = $extend(game_GameObject.prototype,{
-	update: function(dt) {
+	setState: function(state) {
+		this.stateController.setState(state);
+		this.animationController.setState(state);
+	}
+	,update: function(dt) {
 		this.x = this.player.x;
 		this.y = this.player.y;
 		this.view.update();
 	}
-	,shoot: function() {
-		var _gthis = this;
-		if(this.canShoot) {
-			var bullet = new objects_bullet_Bullet();
-			bullet.x = this.x;
-			bullet.y = this.y;
-			var mouse = this.input.getMousePosition();
-			var direction = new utils_Vector(this.x,this.y);
-			var dir = utils_Vector.calcDifference(direction,mouse);
-			bullet.direction = utils_Vector.normalize(dir);
-			bullet.direction.x += (Math.random() - 0.5) / 10;
-			bullet.direction.y += (Math.random() - 0.5) / 10;
-			bullet.rotation = Math.atan2(bullet.direction.y,bullet.direction.x);
-			new utils_Alarm(50,function() {
-				return _gthis.canShoot = true;
-			});
-			this.canShoot = false;
-			this.view.shoot();
+	,autoShoot: function() {
+		if(this.stateController.getGun().auto) {
+			this.shoot();
 		}
 	}
+	,manualShoot: function() {
+		if(!this.stateController.getGun().auto) {
+			this.shoot();
+		}
+	}
+	,shoot: function() {
+		var direction = this.calcDirectionToMouse();
+		this.stateController.getGun().fire(direction);
+		this.view.shoot();
+	}
+	,calcDirectionToMouse: function() {
+		var mouse = this.input.getMousePosition();
+		var position = new utils_Vector(this.x,this.y);
+		var direction = utils_Vector.calcDifference(position,mouse);
+		return utils_Vector.normalize(direction);
+	}
+	,setRandomGun: function() {
+		this.stateController.setRandomGun();
+	}
+	,__class__: objects_weapon_Weapon
 });
+var objects_weapon_WeaponStates = function(weapon) {
+	this.weapon = weapon;
+	this.gunMap = new haxe_ds_StringMap();
+	var this1 = this.gunMap;
+	var k = objects_weapon_WeaponStates.pistol;
+	var v = new objects_weapon_guns_Pistol(weapon);
+	var _this = this1;
+	if(__map_reserved[k] != null) {
+		_this.setReserved(k,v);
+	} else {
+		_this.h[k] = v;
+	}
+	var this11 = this.gunMap;
+	var k1 = objects_weapon_WeaponStates.pp;
+	var v1 = new objects_weapon_guns_Pp(weapon);
+	var _this1 = this11;
+	if(__map_reserved[k1] != null) {
+		_this1.setReserved(k1,v1);
+	} else {
+		_this1.h[k1] = v1;
+	}
+	var this12 = this.gunMap;
+	var k2 = objects_weapon_WeaponStates.shotgun;
+	var v2 = new objects_weapon_guns_Shotgun(weapon);
+	var _this2 = this12;
+	if(__map_reserved[k2] != null) {
+		_this2.setReserved(k2,v2);
+	} else {
+		_this2.h[k2] = v2;
+	}
+};
+objects_weapon_WeaponStates.__name__ = true;
+objects_weapon_WeaponStates.prototype = {
+	setState: function(state) {
+		this.currentState = state;
+	}
+	,getGun: function() {
+		var key = this.currentState;
+		var _this = this.gunMap;
+		if(__map_reserved[key] != null) {
+			return _this.getReserved(key);
+		} else {
+			return _this.h[key];
+		}
+	}
+	,setRandomGun: function() {
+		var gunsRotation = true;
+		while(gunsRotation) {
+			var gun = this.gunMap.keys();
+			while(gun.hasNext()) {
+				var gun1 = gun.next();
+				if(gun1 != this.currentState && gun1 != objects_weapon_WeaponStates.pistol) {
+					if(Math.random() > 0.5) {
+						gunsRotation = false;
+						this.weapon.setState(gun1);
+					}
+				}
+			}
+		}
+	}
+	,__class__: objects_weapon_WeaponStates
+};
 var objects_weapon_WeaponView = function(weapon) {
 	this.NORMAL_ANCHOR_Y = 0.5;
 	this.NORMAL_ANCHOR_X = -0.5;
@@ -1205,7 +1575,117 @@ objects_weapon_WeaponView.prototype = {
 	,shoot: function() {
 		this.anchorDelta = 0.5;
 	}
+	,__class__: objects_weapon_WeaponView
 };
+var objects_weapon_guns_AbstractGun = function(weapon) {
+	this.canShoot = true;
+	this.weapon = weapon;
+	this.init();
+};
+objects_weapon_guns_AbstractGun.__name__ = true;
+objects_weapon_guns_AbstractGun.prototype = {
+	init: function() {
+	}
+	,fire: function(direction) {
+		var _gthis = this;
+		if(this.canShoot) {
+			this.fireCallback(direction);
+			this.canShoot = false;
+			new utils_Alarm(this.fireRate,function() {
+				return _gthis.canShoot = true;
+			});
+		}
+	}
+	,makeRangedDirection: function(direction) {
+		var angle = Math.random() * this.range * 2 - this.range;
+		direction.addAngle(angle);
+	}
+	,calcOffsetPosition: function(direction) {
+		return new utils_Vector(this.weapon.x + this.positionOffset * direction.x,this.weapon.y + this.positionOffset * direction.y);
+	}
+	,__class__: objects_weapon_guns_AbstractGun
+};
+var objects_weapon_guns_Pistol = function(weapon) {
+	objects_weapon_guns_AbstractGun.call(this,weapon);
+};
+objects_weapon_guns_Pistol.__name__ = true;
+objects_weapon_guns_Pistol.__super__ = objects_weapon_guns_AbstractGun;
+objects_weapon_guns_Pistol.prototype = $extend(objects_weapon_guns_AbstractGun.prototype,{
+	init: function() {
+		var _gthis = this;
+		this.fireRate = 100;
+		this.auto = false;
+		this.range = 5;
+		this.positionOffset = 32;
+		this.fireCallback = function(direction) {
+			_gthis.makeRangedDirection(direction);
+			var position = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Bullet(position.x,position.y,direction);
+		};
+	}
+	,__class__: objects_weapon_guns_Pistol
+});
+var objects_weapon_guns_Pp = function(weapon) {
+	objects_weapon_guns_AbstractGun.call(this,weapon);
+};
+objects_weapon_guns_Pp.__name__ = true;
+objects_weapon_guns_Pp.__super__ = objects_weapon_guns_AbstractGun;
+objects_weapon_guns_Pp.prototype = $extend(objects_weapon_guns_AbstractGun.prototype,{
+	init: function() {
+		var _gthis = this;
+		this.fireRate = 20;
+		this.auto = true;
+		this.range = 10;
+		this.positionOffset = 32;
+		this.fireCallback = function(direction) {
+			_gthis.makeRangedDirection(direction);
+			var position = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Bullet(position.x,position.y,direction);
+		};
+	}
+	,__class__: objects_weapon_guns_Pp
+});
+var objects_weapon_guns_Shotgun = function(weapon) {
+	objects_weapon_guns_AbstractGun.call(this,weapon);
+};
+objects_weapon_guns_Shotgun.__name__ = true;
+objects_weapon_guns_Shotgun.__super__ = objects_weapon_guns_AbstractGun;
+objects_weapon_guns_Shotgun.prototype = $extend(objects_weapon_guns_AbstractGun.prototype,{
+	init: function() {
+		var _gthis = this;
+		this.fireRate = 200;
+		this.auto = false;
+		this.range = 10;
+		this.positionOffset = 32;
+		this.fireCallback = function(direction) {
+			_gthis.makeRangedDirection(direction);
+			var position = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position.x,position.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position1 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position1.x,position1.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position2 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position2.x,position2.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position3 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position3.x,position3.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position4 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position4.x,position4.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position5 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position5.x,position5.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position6 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position6.x,position6.y,direction);
+			_gthis.makeRangedDirection(direction);
+			var position7 = _gthis.calcOffsetPosition(direction);
+			new objects_bullet_Shell(position7.x,position7.y,direction);
+		};
+	}
+	,__class__: objects_weapon_guns_Shotgun
+});
 var utils_Alarm = function(duration,callback) {
 	var _gthis = this;
 	this.timer = haxe_Timer.delay(function() {
@@ -1214,6 +1694,9 @@ var utils_Alarm = function(duration,callback) {
 	},duration);
 };
 utils_Alarm.__name__ = true;
+utils_Alarm.prototype = {
+	__class__: utils_Alarm
+};
 var utils_Vector = function(x,y) {
 	if(y == null) {
 		y = 0;
@@ -1261,13 +1744,39 @@ utils_Vector.prototype = {
 		this.x *= length;
 		this.y *= length;
 	}
+	,getAngle: function() {
+		var angle = Math.atan2(this.y,this.x) * 180 / Math.PI;
+		if(angle > 0) {
+			angle -= 360;
+		}
+		angle = -angle;
+		return angle;
+	}
+	,setAngle: function(angle) {
+		angle = (90 + angle) / 180 * Math.PI;
+		this.x = Math.sin(angle);
+		this.y = Math.cos(angle);
+	}
+	,addAngle: function(deltaAngle) {
+		var angle = this.getAngle() + deltaAngle;
+		this.setAngle(angle);
+	}
+	,__class__: utils_Vector
 };
 var $_;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $global.$haxeUID++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = m.bind(o); o.hx__closures__[m.__id__] = f; } return f; }
 if(typeof $global.$haxeUID == "undefined") $global.$haxeUID = 0;
+String.prototype.__class__ = String;
 String.__name__ = true;
 Array.__name__ = true;
+Date.prototype.__class__ = Date;
 Date.__name__ = "Date";
+var Int = { };
+var Dynamic = { };
+var Float = Number;
+var Bool = Boolean;
+var Class = { };
+var Enum = { };
 var __map_reserved = {};
 Object.defineProperty(js__$Boot_HaxeError.prototype,"message",{ get : function() {
 	return String(this.val);
@@ -1291,6 +1800,9 @@ Perf.BOTTOM_LEFT = "BL";
 Perf.BOTTOM_RIGHT = "BR";
 Perf.DELAY_TIME = 4000;
 Settings.COLOR_BLACK = 10961195;
+animations_EnemyAnimationController.enemyRunAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
+animations_EnemyAnimationController.enemyAttackAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
+animations_EnemyAnimationController.enemyGotDamageAnimation = new game_Animation(["assets/sprites/enemies/skeleton_hit.png"]);
 animations_PlayerAnimationController.playerRunAnimation = new game_Animation(["assets/sprites/player/player_run_0.png","assets/sprites/player/player_run_1.png","assets/sprites/player/player_run_2.png","assets/sprites/player/player_run_3.png"]);
 animations_PlayerAnimationController.playerRollAnimation = new game_Animation(["assets/sprites/player/player_roll.png"]);
 configs_InputTemplate.KEY_MOVE_UP = 87;
@@ -1298,5 +1810,9 @@ configs_InputTemplate.KEY_MOVE_DOWN = 83;
 configs_InputTemplate.KEY_MOVE_LEFT = 65;
 configs_InputTemplate.KEY_MOVE_RIGHT = 68;
 configs_InputTemplate.KEY_ROLL = 32;
+objects_weapon_WeaponStates.pistol = "pistol";
+objects_weapon_WeaponStates.pp = "pp";
+objects_weapon_WeaponStates.shotgun = "shotgun";
+objects_weapon_WeaponStates.tripleMachinegun = "triple_machinegun";
 Main.main();
 })(typeof exports != "undefined" ? exports : typeof window != "undefined" ? window : typeof self != "undefined" ? self : this, typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

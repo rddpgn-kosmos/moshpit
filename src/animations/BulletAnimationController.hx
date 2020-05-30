@@ -2,6 +2,7 @@ package animations;
 
 import game.AnimationState;
 import objects.bullet.Bullet;
+import game.GameObject;
 import game.AnimationController;
 import game.Animation;
 
@@ -13,7 +14,7 @@ class BulletAnimationControler extends AnimationController {
         "assets/sprites/bullets/bullet_1.png",
     ]);
 
-    public function new(bullet:Bullet) {
+    public function new(bullet:GameObject) {
         super(bullet);
         
         bulletAnimationState = new AnimationState('init', 1, bulletAnimation, 'once');

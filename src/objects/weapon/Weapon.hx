@@ -1,25 +1,34 @@
 package objects.weapon;
 
-import utils.Alarm;
 import game.GameObject;
-import objects.bullet.Bullet;
 import utils.Vector;
 import objects.player.Player;
 import animations.WeaponAnimationController;
+import objects.weapon.WeaponStates;
+import objects.weapon.guns.AbstractGun;
 
 class Weapon extends GameObject {
 
     private var view:WeaponView;
     private var player:Player;
     private var canShoot:Bool = true;
+    private var stateController:WeaponStates;
 
     public function new(player) {
         super(new WeaponAnimationController(this));
-
         this.player = player;
         view = new WeaponView(this);
+        stateController = new WeaponStates(this);
+        
+        setState(WeaponStates.pistol);
 
-        input.onMousePressed(shoot);
+        input.onMouseDown(manualShoot);
+        input.onMousePressed(autoShoot);
+    }
+
+    public function setState(state:String):Void {
+        stateController.setState(state);
+        animationController.setState(state);
     }
 
     public override function update(dt:Float):Void {
@@ -27,30 +36,35 @@ class Weapon extends GameObject {
         y = player.y;
 
         view.update();
+    }
 
-        //shoot();
+    private function autoShoot() {
+        if (stateController.getGun().auto) {
+            shoot();
+        }
+    }
+
+    private function manualShoot() {
+        if (!stateController.getGun().auto) {
+            shoot();
+        }
     }
 
     private function shoot() {
-        if (canShoot) {
-            var bullet:Bullet = new Bullet();
-            bullet.x = x;
-            bullet.y = y;
+        var direction:Vector = calcDirectionToMouse();
+        stateController.getGun().fire(direction);
+        view.shoot();
+    }
 
-            var mouse = input.getMousePosition();
-            var direction = new Vector(x, y);
+    private function calcDirectionToMouse():Vector {
+        var mouse:Vector = input.getMousePosition();
+        var position:Vector = new Vector(x, y);
+        var direction:Vector = Vector.calcDifference(position, mouse);
 
-            var dir = Vector.calcDifference(direction, mouse);
+        return Vector.normalize(direction);
+    }
 
-
-            bullet.direction = Vector.normalize(dir);
-            bullet.direction.x += (Math.random() - 0.5)/10;
-            bullet.direction.y += (Math.random() - 0.5)/10;
-            bullet.rotation = Math.atan2( bullet.direction.y,  bullet.direction.x);
-            
-            new Alarm(50, () -> canShoot = true);
-            canShoot = false;
-            view.shoot();
-        }
+    public function setRandomGun() {
+        stateController.setRandomGun();
     }
 }

@@ -2,6 +2,8 @@ package objects.box;
 
 import game.GameObject;
 
+//Вырезать нахуй, всю логику перенести в box
+
 class BoxController {
 
     private var currentBox:Box;
